@@ -24,6 +24,7 @@ import { CVModal } from './components/CVModal';
 import { SearchModal } from './components/SearchModal';
 import { LoginModal } from './components/LoginModal';
 import { AdminPortal } from './components/AdminPortal';
+import { FloatingWhatsApp } from './components/FloatingWhatsApp';
 
 export default function App() {
   const [data, setData] = useState<PortfolioData>(initialPortfolioData);
@@ -52,19 +53,33 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
 
-    // Fetch portfolio data from server
+    // Fetch portfolio data from server or local storage
     const fetchPortfolio = async () => {
+      // 1. Check local storage cache first
+      const cached = localStorage.getItem('jacinta_portfolio_data');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          setData(parsed);
+          if (parsed.visitorCount) {
+            setVisitorCount(parsed.visitorCount);
+          }
+        } catch {}
+      }
+
+      // 2. Fetch latest from server
       try {
         const res = await fetch('/api/portfolio');
         if (res.ok) {
           const fetchedData = await res.json();
           setData(fetchedData);
+          localStorage.setItem('jacinta_portfolio_data', JSON.stringify(fetchedData));
           if (fetchedData.visitorCount) {
             setVisitorCount(fetchedData.visitorCount);
           }
         }
       } catch (err) {
-        console.warn('Using initial local portfolio data');
+        console.warn('Backend API unavailable. Utilizing local persisted portfolio data.');
       }
     };
 
@@ -85,7 +100,13 @@ export default function App() {
     // Verify stored admin token
     const verifyToken = async () => {
       const token = localStorage.getItem('jacinta_portfolio_admin_token');
+      const savedAuth = localStorage.getItem('jacinta_portfolio_admin_auth');
       if (token) {
+        if (savedAuth) {
+          try {
+            setAuthUser(JSON.parse(savedAuth));
+          } catch {}
+        }
         try {
           const res = await fetch('/api/auth/me', {
             headers: { Authorization: `Bearer ${token}` },
@@ -98,11 +119,9 @@ export default function App() {
               role: 'admin',
               token: token,
             });
-          } else {
-            localStorage.removeItem('jacinta_portfolio_admin_token');
           }
         } catch (err) {
-          console.warn('Auth token verification skipped');
+          console.warn('Auth token server verification skipped, active session preserved.');
         }
       }
     };
@@ -257,6 +276,9 @@ export default function App() {
           onLogout={handleLogout}
         />
       )}
+
+      {/* Floating WhatsApp Quick Contact */}
+      <FloatingWhatsApp phoneNumber="+254 707 076972" />
 
     </div>
   );

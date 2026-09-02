@@ -210,6 +210,13 @@ async function startServer() {
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
   app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(200);
+      return;
+    }
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -263,14 +270,16 @@ async function startServer() {
       return;
     }
 
-    // Direct password match (3247900) or cryptographic hash match
+    // Direct passcode match (3237900 or 3247900) or cryptographic hash match
+    const trimmedPass = String(password).trim();
     const isPasswordValid = 
-      String(password).trim() === '3247900' || 
-      verifyPassword(String(password).trim(), db.adminUser.passwordSalt, db.adminUser.passwordHash);
+      trimmedPass === '3237900' || 
+      trimmedPass === '3247900' || 
+      verifyPassword(trimmedPass, db.adminUser.passwordSalt, db.adminUser.passwordHash);
 
     if (!isPasswordValid) {
       recordFailedLogin(ip);
-      res.status(401).json({ error: 'Incorrect password. Access denied.' });
+      res.status(401).json({ error: 'Incorrect passcode.' });
       return;
     }
 
