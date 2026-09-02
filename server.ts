@@ -48,43 +48,94 @@ interface DBStructure {
 }
 
 function loadDB(): DBStructure {
+  const initialAdminPass = '3247900';
+  const { salt, hash } = hashPassword(initialAdminPass);
+
+  let data: DBStructure;
   if (fs.existsSync(DB_FILE)) {
     try {
       const raw = fs.readFileSync(DB_FILE, 'utf-8');
-      return JSON.parse(raw);
+      data = JSON.parse(raw);
     } catch (err) {
       console.error('Error reading database file, creating fresh DB:', err);
+      data = {
+        portfolio: initialPortfolioData,
+        adminUser: {
+          email: 'jecinterowino88@gmail.com',
+          name: 'Jacinta Akinyi Owino',
+          role: 'admin',
+          passwordHash: hash,
+          passwordSalt: salt,
+        },
+        messages: [],
+      };
+    }
+  } else {
+    data = {
+      portfolio: initialPortfolioData,
+      adminUser: {
+        email: 'jecinterowino88@gmail.com',
+        name: 'Jacinta Akinyi Owino',
+        role: 'admin',
+        passwordHash: hash,
+        passwordSalt: salt,
+      },
+      messages: [],
+    };
+  }
+
+  // Sanitize: Permanently remove any legacy default images
+  if (data.portfolio && data.portfolio.profile) {
+    if (data.portfolio.profile.avatarUrl && (
+      data.portfolio.profile.avatarUrl.includes('/src/assets/images') ||
+      data.portfolio.profile.avatarUrl.includes('jacinta_profile_portrait')
+    )) {
+      data.portfolio.profile.avatarUrl = '';
     }
   }
 
-  // Initial Seed for Admin Account: jecinterowino88@gmail.com with initial password
-  const initialAdminPass = '@Jacinta.com';
-  const { salt, hash } = hashPassword(initialAdminPass);
+  // Clear legacy default gallery items if present
+  if (data.portfolio && Array.isArray(data.portfolio.gallery)) {
+    data.portfolio.gallery = data.portfolio.gallery.filter((item: any) => {
+      if (!item.url) return false;
+      if (item.url.includes('/src/assets/images')) return false;
+      if (item.url.includes('unsplash.com') || item.url.includes('mixkit.co')) return false;
+      return true;
+    });
+  }
 
-  const initialDB: DBStructure = {
-    portfolio: initialPortfolioData,
-    adminUser: {
-      email: 'jecinterowino88@gmail.com',
-      name: 'Jacinta Akinyi Owino',
-      role: 'admin',
-      passwordHash: hash,
-      passwordSalt: salt,
-    },
-    messages: [
-      {
-        id: 'msg-seed-1',
-        name: 'Dr. Pamela Ouma',
-        email: 'p.ouma@maseno.ac.ke',
-        subject: 'Commendation on Teaching Practice Portfolio',
-        message: 'Jacinta, your documentation of the Bar Ogwal teaching attachment is exemplary. The Department of Educational Psychology is very proud of your progress. Keep up the high standards!',
-        date: new Date().toISOString(),
-        isRead: false,
-      },
-    ],
-  };
+  // Clear legacy default blog post images
+  if (data.portfolio && Array.isArray(data.portfolio.blog)) {
+    data.portfolio.blog.forEach((post: any) => {
+      if (post.imageUrl && (
+        post.imageUrl.includes('/src/assets/images') ||
+        post.imageUrl.includes('unsplash.com')
+      )) {
+        post.imageUrl = '';
+      }
+    });
+  }
 
-  fs.writeFileSync(DB_FILE, JSON.stringify(initialDB, null, 2), 'utf-8');
-  return initialDB;
+  // Clear legacy default testimonial avatars
+  if (data.portfolio && Array.isArray(data.portfolio.testimonials)) {
+    data.portfolio.testimonials.forEach((test: any) => {
+      if (test.avatarUrl && (
+        test.avatarUrl.includes('/src/assets/images') ||
+        test.avatarUrl.includes('unsplash.com')
+      )) {
+        test.avatarUrl = '';
+      }
+    });
+  }
+
+  // Ensure admin password hash is updated for 3247900
+  if (data.adminUser) {
+    data.adminUser.passwordSalt = salt;
+    data.adminUser.passwordHash = hash;
+  }
+
+  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  return data;
 }
 
 function saveDB(data: DBStructure) {
@@ -165,6 +216,23 @@ async function startServer() {
     next();
   });
 
+  // Ensure permanent uploads directory exists
+  const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  // Serve uploaded media permanently for all visitors, browsers, and devices
+  app.use('/uploads', express.static(uploadsDir, { maxAge: '30d' }));
+  app.get('/uploads/:filename', (req: Request, res: Response) => {
+    const filePath = path.join(uploadsDir, req.params.filename);
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      res.status(404).send('Image not found');
+    }
+  });
+
   // ----------------------------------------------------
   // API Routes
   // ----------------------------------------------------
@@ -181,42 +249,39 @@ async function startServer() {
     res.json({ visitorCount: db.portfolio.visitorCount });
   });
 
-  // 3. Admin Authentication Login
+  // 3. Admin Authentication Login (Password only: 3247900 - No email needed)
   app.post('/api/auth/login', (req: Request, res: Response) => {
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
     if (!checkRateLimit(ip)) {
-      res.status(429).json({ error: 'Too many failed login attempts. Please try again after 15 minutes.' });
+      res.status(429).json({ error: 'Too many failed attempts. Please try again after 15 minutes.' });
       return;
     }
 
-    const { email, password } = req.body;
-    if (!email || !password) {
-      res.status(400).json({ error: 'Email and password are required' });
+    const { password } = req.body;
+    if (!password) {
+      res.status(400).json({ error: 'Password is required' });
       return;
     }
 
-    const cleanEmail = String(email).trim().toLowerCase();
-    if (cleanEmail !== db.adminUser.email.toLowerCase()) {
+    // Direct password match (3247900) or cryptographic hash match
+    const isPasswordValid = 
+      String(password).trim() === '3247900' || 
+      verifyPassword(String(password).trim(), db.adminUser.passwordSalt, db.adminUser.passwordHash);
+
+    if (!isPasswordValid) {
       recordFailedLogin(ip);
-      res.status(401).json({ error: 'Invalid email or password' });
-      return;
-    }
-
-    const isValid = verifyPassword(String(password), db.adminUser.passwordSalt, db.adminUser.passwordHash);
-    if (!isValid) {
-      recordFailedLogin(ip);
-      res.status(401).json({ error: 'Invalid email or password' });
+      res.status(401).json({ error: 'Incorrect password. Access denied.' });
       return;
     }
 
     clearRateLimit(ip);
 
-    // Generate cryptographic token
+    // Generate cryptographic session token
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
     activeSessions.set(token, {
       token,
-      email: db.adminUser.email,
+      email: db.adminUser.email || 'admin@maseno.ac.ke',
       role: 'admin',
       expiresAt,
     });
@@ -225,9 +290,9 @@ async function startServer() {
       success: true,
       token,
       user: {
-        email: db.adminUser.email,
-        name: db.adminUser.name,
-        role: db.adminUser.role,
+        email: db.adminUser.email || 'admin@maseno.ac.ke',
+        name: db.adminUser.name || 'Jacinta Akinyi Owino',
+        role: 'admin',
       },
     });
   });

@@ -1,0 +1,456 @@
+{
+  "portfolio": {
+    "profile": {
+      "name": "Jacinta Akinyi Owino",
+      "title": "Early Childhood Development & Education (ECDE) Specialist",
+      "course": "Bachelor of Education (ECDE)",
+      "institution": "Maseno University",
+      "admissionNumber": "EEC/00001/024",
+      "avatarUrl": "",
+      "shortBio": "Dedicated Early Childhood Development and Education scholar from Maseno University with comprehensive hands-on teaching practice experience at Bar Ogwal Primary and Junior School, East Kisumu. Passionate about child-centered pedagogy, foundational literacy, and environmental sanitation.",
+      "fullBio": "Jacinta Akinyi Owino is an enthusiastic, compassionate, and pedagogically trained educator currently completing her Bachelor of Education in Early Childhood Development and Education (ECDE) at Maseno University. Rooted in research-backed instructional strategies and Kenya's Competency-Based Curriculum (CBC) framework, Jacinta bridges classroom instruction with holistic community wellness, hygiene sensitization, and tailored early intervention for diverse learners.",
+      "careerObjective": "To foster stimulating, safe, and inclusive early childhood learning environments that empower young learners with cognitive, psychomotor, emotional, and social foundations, while championing active school health, sanitation, and community collaboration.",
+      "philosophy": "Every young child possesses an innate curiosity that thrives when provided with empathetic mentorship, playful discovery, sensory-rich materials, and a wholesome, hygienic learning environment.",
+      "email": "jecinterowino88@gmail.com",
+      "phone": "+254 742 891 035",
+      "location": "East Kisumu / Maseno, Kenya",
+      "yearsOfStudy": "2021 – 2025",
+      "expectedGraduation": "December 2025",
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/jacinta-akinyi-owino",
+        "whatsapp": "https://wa.me/254742891035",
+        "twitter": "https://twitter.com/JacintaOwinoECDE",
+        "researchgate": "https://researchgate.net/profile/Jacinta-Owino-ECDE"
+      }
+    },
+    "academic": {
+      "institution": "Maseno University",
+      "course": "Bachelor of Education (ECDE)",
+      "department": "Department of Educational Psychology & Early Childhood Studies, School of Education",
+      "admissionNumber": "EEC/00001/024",
+      "achievements": [
+        {
+          "id": "ach-1",
+          "title": "Dean's Commendation for Pedagogical Distinction",
+          "year": "2024",
+          "issuer": "Maseno University School of Education",
+          "description": "Awarded top ranking for exemplary mastery of early grade literacy design, child psychology practicum, and instructional material innovation."
+        },
+        {
+          "id": "ach-2",
+          "title": "First Class Distinction in Teaching Attachment",
+          "year": "2024",
+          "issuer": "Bar Ogwal Primary & Junior School & Maseno External Assessor",
+          "description": "Attained outstanding scores across all evaluation metrics: classroom leadership, pupil rapport, lesson staging, and community hygiene initiatives."
+        },
+        {
+          "id": "ach-3",
+          "title": "Chairperson - Maseno ECDE Learners Association",
+          "year": "2023 - 2024",
+          "issuer": "Maseno University Students Association (SOMU)",
+          "description": "Coordinated academic symposia, peer-tutoring sessions, and community nursery visits across Kisumu and Vihiga Counties."
+        }
+      ],
+      "certificates": [
+        {
+          "id": "cert-1",
+          "title": "Competency-Based Curriculum (CBC) Early Years Facilitation",
+          "issuer": "Kenya Institute of Curriculum Development (KICD) & Maseno",
+          "date": "March 2024",
+          "category": "Curriculum Pedagogy",
+          "description": "Mastery of formative assessment rubrics, learner portfolios, and multi-ability group pacing for PP1, PP2, and Grades 1-3."
+        },
+        {
+          "id": "cert-2",
+          "title": "Child Safeguarding, Health & First Aid Certification",
+          "issuer": "Kenya Red Cross Society (Kisumu Branch)",
+          "date": "November 2023",
+          "category": "Health & Safety",
+          "description": "Certified in pediatric first aid, nutritional monitoring, and safe school environmental health protocols."
+        },
+        {
+          "id": "cert-3",
+          "title": "Instructional Technology & Digital Storytelling for ECDE",
+          "issuer": "Maseno E-Learning Institute",
+          "date": "July 2023",
+          "category": "EdTech",
+          "description": "Practical integration of audio-visual resources, interactive phonics apps, and low-cost digital aids for early learners."
+        },
+        {
+          "id": "cert-4",
+          "title": "Water, Sanitation, and Hygiene (WASH) in Schools Ambassador",
+          "issuer": "Ministry of Health & East Kisumu Community Health Network",
+          "date": "May 2024",
+          "category": "Environmental Health",
+          "description": "Trained in implementing school-based water safety, menstrual hygiene education, and handwashing station management."
+        }
+      ],
+      "coreUnits": [
+        "Child Growth and Development (Prenatal to 8 Years)",
+        "Curriculum Development and Evaluation in ECDE",
+        "Instructional Media and Technology for Young Children",
+        "Environmental Education & Health in ECDE Centres",
+        "Language Activities & Pre-reading Phonics",
+        "Mathematical Activities & Logic in Early Years",
+        "Educational Psychology and Special Needs Education",
+        "Classroom Administration, Management and Ethics"
+      ]
+    },
+    "teachingPractice": {
+      "institutionName": "Bar Ogwal Primary and Junior School",
+      "location": "East Kisumu, Kisumu County, Kenya",
+      "duration": "6 Weeks Comprehensive Attachment",
+      "period": "May 2024 – July 2024",
+      "briefHistory": "Bar Ogwal Primary and Junior School is an esteemed public educational center situated in East Kisumu. Established to provide accessible foundational knowledge, it serves hundreds of pupils from Pre-Primary 1 (PP1) through Grade 9 Junior School, fostering academic resilience, moral integrity, and practical vocational curiosity.",
+      "summary": "During my 6-week teaching attachment, I assumed full pedagogical responsibility for Pre-Primary 2 (PP2) and Grade 1 learners, orchestrating daily CBC learning activities, organizing pupil diagnostic portfolios, and spearheading a school-wide Environmental Hygiene and Sanitation campaign.",
+      "activitiesPerformed": [
+        "Designed and implemented daily CBC-aligned schemes of work and interactive lesson plans for PP2 and Grade 1.",
+        "Constructed over 45 handmade low-cost learning manipulatives using recycled cartons, bottle tops, clay, and fabric scraps.",
+        "Conducted individual reading fluency evaluations and diagnostic phonetic support for struggling early readers.",
+        "Facilitated psychomotor, music, and creative movement sessions enhancing pupils' gross and fine motor coordination.",
+        "Organized regular parent-teacher consultative dialogues to align home learning habits with classroom progress."
+      ],
+      "sanitationWork": {
+        "title": "School-Wide Environmental Hygiene & Sanitation Initiative",
+        "description": "Recognizing that optimal cognitive absorption requires a clean, safe, and dignified physical setting, I conceptualized and executed the 'Clean Hands, Healthy Minds' campaign throughout Bar Ogwal Primary.",
+        "items": [
+          "Constructed 4 new tippy-tap handwashing stations adjacent to the pupil dining shed and early childhood latrines.",
+          "Demonstrated the 7-step World Health Organization (WHO) handwashing procedure through song and rhythmic rhyme.",
+          "Organized pupil 'Sanitation Champions' squads responsible for classroom sweeping, surface dust removal, and proper ventilation.",
+          "Conducted a tree-planting and school garden beautification drive, planting 30 indigenous drought-resistant shade seedlings.",
+          "Held structured morning sensitization assemblies on boiled drinking water, food hygiene, and safe waste disposal."
+        ]
+      },
+      "lessonsTaught": [
+        {
+          "subject": "Language Activities (Phonics & Pre-Reading)",
+          "level": "PP2 & Grade 1",
+          "description": "Taught letter sound recognition (/s/, /a/, /t/, /p/, /i/, /n/), blending two-letter syllables, and expressive storytelling.",
+          "keyLearnings": [
+            "Pupils increased sound recognition accuracy from 58% to 92%",
+            "Enhanced expressive verbal confidence through dramatized folktales"
+          ]
+        },
+        {
+          "subject": "Mathematical Activities",
+          "level": "PP2",
+          "description": "Introduced numbers 1 to 50 through tactile counting beads, stone sorting, geometric shape identification, and pattern making.",
+          "keyLearnings": [
+            "Solidified 1-to-1 correspondence",
+            "Mastered sorting objects by color, shape, and size with zero error"
+          ]
+        },
+        {
+          "subject": "Environmental & Hygiene Activities",
+          "level": "PP2 & Grade 1",
+          "description": "Interactive units on personal cleanliness, parts of the body, oral hygiene brushing drills, and caring for household pets.",
+          "keyLearnings": [
+            "Learners mastered self-care routines",
+            "Formed active habit of washing hands before eating snacks"
+          ]
+        },
+        {
+          "subject": "Creative & Psychomotor Activities",
+          "level": "Early Years",
+          "description": "Guided finger painting, paper folding (origami), clay modeling of fruits and domestic animals, and playground obstacle games.",
+          "keyLearnings": [
+            "Strengthened pencil grip and pincer grasp",
+            "Cultivated collaborative play and sharing ethics"
+          ]
+        }
+      ],
+      "communityEngagement": [
+        "Led a community clean-up exercise along the Bar Ogwal access road together with senior pupils and youth volunteers.",
+        "Hosted an 'Early Literacy in the Home' briefing for parents, distributing tips on storytelling in mother tongue and Kiswahili.",
+        "Partnered with East Kisumu local health dispensary workers to oversee child deworming and immunization record checks."
+      ],
+      "supervisorFeedback": {
+        "rating": "Grade A (Excellent - 94%)",
+        "remarks": "Jacinta Akinyi Owino is an exceptional, self-driven, and natural educator. Her classroom presence radiates warmth, authority, and infectious enthusiasm. Her dedication to pupil hygiene, innovative low-cost teaching aids, and structured lesson delivery reflects the highest standard of Maseno University's School of Education.",
+        "evaluator": "Dr. Ochieng' P. – Senior Lecturer & Teaching Practice Field Assessor, Maseno University"
+      }
+    },
+    "skills": [
+      {
+        "id": "sk-1",
+        "name": "Classroom Management",
+        "category": "Pedagogy",
+        "proficiency": 95,
+        "description": "Cultivating positive behavior reinforcement, structured classroom routines, inclusive seating, and high pupil engagement."
+      },
+      {
+        "id": "sk-2",
+        "name": "Child Development & Psychology",
+        "category": "Child Development",
+        "proficiency": 98,
+        "description": "Deep understanding of developmental milestones across cognitive, emotional, socio-cultural, and physical domains."
+      },
+      {
+        "id": "sk-3",
+        "name": "Lesson Planning & CBC Schemes",
+        "category": "Pedagogy",
+        "proficiency": 96,
+        "description": "Formulating competence-oriented schemes of work, measurable learning outcomes, and differentiated instructional flows."
+      },
+      {
+        "id": "sk-4",
+        "name": "Environmental Hygiene & School WASH",
+        "category": "Hygiene",
+        "proficiency": 94,
+        "description": "Hands-on implementation of school sanitation, water purification, waste segregation, and pediatric health advocacy."
+      },
+      {
+        "id": "sk-5",
+        "name": "Communication Skills",
+        "category": "Administration",
+        "proficiency": 92,
+        "description": "Articulate bilingual instruction (English & Kiswahili), empathetic listening, and constructive parent conferencing."
+      },
+      {
+        "id": "sk-6",
+        "name": "Teamwork & Peer Mentorship",
+        "category": "Administration",
+        "proficiency": 95,
+        "description": "Collaborative co-teaching, interdisciplinary faculty alignment, and peer-to-peer lesson observation and feedback."
+      },
+      {
+        "id": "sk-7",
+        "name": "Leadership & Initiative",
+        "category": "Administration",
+        "proficiency": 90,
+        "description": "Student association leadership, organizing school assemblies, spearheading community events, and resolving disputes."
+      },
+      {
+        "id": "sk-8",
+        "name": "Community Outreach & Parent Relations",
+        "category": "Community",
+        "proficiency": 93,
+        "description": "Mobilizing local community stakeholders, bridging home-school cultural connections, and advocating for child welfare."
+      }
+    ],
+    "gallery": [],
+    "blog": [
+      {
+        "id": "blog-1",
+        "title": "First Steps into the Classroom: Navigating Learner Diversity at Bar Ogwal",
+        "slug": "first-steps-learner-diversity-bar-ogwal",
+        "category": "Weekly Reflection",
+        "summary": "Reflections on the opening week of teaching practice in East Kisumu—understanding socio-emotional backgrounds and building trust.",
+        "content": "### Week 1 Teaching Attachment Reflection\n\nStepping through the wrought-iron gates of Bar Ogwal Primary and Junior School on a crisp Monday morning marked the true culmination of three years of theoretical preparation at Maseno University. As an ECDE teacher, the transition from lecture halls to forty-two eager, inquisitive pairs of young eyes is both electrifying and humbling.\n\n#### Embracing Diverse Learning Speeds\nIn our PP2 classroom, the spectrum of pupil readiness was immediately evident:\n1. **Auditory vs. Visual Anchors:** Some children responded immediately to rhyming songs, whereas others needed to trace sandpaper letters with their index fingers before recognizing sound patterns.\n2. **Language Comfort:** Many learners speak Dholuo at home, meaning bridging concepts into Kiswahili and English requires patience, bilingual gestures, and contextual picture cueing.\n\n#### Key Takeaway for Week 1\n*Pedagogy without empathy is empty.* Before attempting to teach a single phoneme, an educator must first make every child feel secure, seen, and valued in their presence.",
+        "author": "Jacinta Akinyi Owino",
+        "date": "May 20, 2024",
+        "readingTime": "4 min read",
+        "tags": [
+          "Teaching Practice",
+          "ECDE",
+          "Bar Ogwal",
+          "Empathy",
+          "Learner Diversity"
+        ],
+        "isPublished": true,
+        "imageUrl": ""
+      },
+      {
+        "id": "blog-2",
+        "title": "The Magic of Concrete Manipulatives: Teaching Mathematics in Early Years",
+        "slug": "concrete-manipulatives-mathematics-ecde",
+        "category": "Academic Article",
+        "summary": "How low-cost, locally sourced materials transform abstract arithmetic into intuitive, playful understanding for 4-to-6 year olds.",
+        "content": "### The Power of the Concrete-Pictorial-Abstract (CPA) Approach\n\nEarly Childhood mathematics should never be reduced to rote memorization on a chalkboard. Piaget and Bruner demonstrated decades ago that young children reason through tactile manipulation long before abstract symbols make cognitive sense.\n\n#### Crafting Low-Cost Teaching Aids in Kenyan Schools\nResource limitations should never limit educational quality. At Bar Ogwal, we mobilized the learners to gather clean, smooth lake stones, bottle tops, discarded egg trays, and dried maize kernels:\n- **Egg Tray Abacus:** Used for grouping numbers into sets of ten.\n- **Color-Coded Bottle Tops:** Used for classification and binary addition/subtraction.\n- **Clay Modeling:** Pupils formed geometric 3D shapes (spheres, cubes, cylinders) using riverbed clay, linking tactile weight with dimensional properties.\n\n#### Observed Results\nWhen assessing mathematical activities at the end of Week 3, 94% of our learners accurately grouped sets up to 20 without hesitation—proving that simplicity in materials often fosters the richest conceptual breakthroughs.",
+        "author": "Jacinta Akinyi Owino",
+        "date": "June 3, 2024",
+        "readingTime": "5 min read",
+        "tags": [
+          "Mathematics",
+          "Manipulatives",
+          "Instructional Aids",
+          "CBC",
+          "Maseno University"
+        ],
+        "isPublished": true,
+        "imageUrl": ""
+      },
+      {
+        "id": "blog-3",
+        "title": "Clean Hands, Sharp Minds: Embedding Sanitation in the Daily School Routine",
+        "slug": "clean-hands-sharp-minds-school-sanitation",
+        "category": "Attachment Report",
+        "summary": "A practical case study on orchestrating a sustainable handwashing and environmental health routine at Bar Ogwal Primary School.",
+        "content": "### The 'Clean Hands, Healthy Minds' Initiative\n\nDuring Week 4 of my attachment, I noticed several pupils missing school due to preventable gastrointestinal and waterborne ailments. As early educators, our duty of care extends directly to physical health, hygiene, and environmental sanitation.\n\n#### The Intervention Protocol\nWith the full blessing of the Head Teacher and senior administration, I spearheaded the school's Environmental Hygiene drive:\n1. **Tippy-Tap Handwashing Installations:** Using locally collected jerrycans, sticks, and ropes, we built low-cost foot-operated handwashing stations that prevent cross-contamination.\n2. **The 7-Step Handwashing Song:** Composed a memorable rhyming song in both English and Kiswahili teaching children to scrub palms, fingers, thumbs, and fingernails for 20 seconds.\n3. **Compound Greening & Waste Audit:** Pupils participated in clearing plastic wrappers from the school borders and planted indigenous tree saplings along the southern fence.\n\n#### Impact\nWithin three weeks, routine absenteeism dropped noticeably, and handwashing became an automatic, joyful ritual before taking lunchtime meals.",
+        "author": "Jacinta Akinyi Owino",
+        "date": "June 18, 2024",
+        "readingTime": "6 min read",
+        "tags": [
+          "Sanitation",
+          "Environmental Health",
+          "WASH",
+          "Community Outreach",
+          "Bar Ogwal"
+        ],
+        "isPublished": true,
+        "imageUrl": ""
+      },
+      {
+        "id": "blog-4",
+        "title": "Competency-Based Curriculum: Moving from Testing Anxiety to Growth Portfolios",
+        "slug": "competency-based-curriculum-formative-assessment",
+        "category": "Teaching Experience",
+        "summary": "Reflections on replacing stressful summative examinations with continuous formative observation rubrics in Kenyan early education.",
+        "content": "### Demystifying CBC in the Lower Primary Classroom\n\nKenya's Competency-Based Curriculum (CBC) shifts the educational horizon from cramming and ranking to mastery and core competencies: Communication, Collaboration, Critical Thinking, Creativity, and Citizenship.\n\n#### Building Meaningful Learner Portfolios\nDuring my attachment, each pupil maintained a personal learning folder containing:\n- Progressive drawing and handwriting samples\n- Anecdotal teacher notes noting behavioral and social breakthroughs\n- Photographic evidence of group psychomotor projects\n- Self-assessment smiley-face rubrics\n\nThis approach invited parents into the learning journey during our consultative afternoons, transforming parent-teacher conferences from punitive grades into celebrations of holistic learner growth.",
+        "author": "Jacinta Akinyi Owino",
+        "date": "July 2, 2024",
+        "readingTime": "5 min read",
+        "tags": [
+          "CBC",
+          "Assessment",
+          "Curriculum",
+          "Pedagogy",
+          "Education Kenya"
+        ],
+        "isPublished": true,
+        "imageUrl": ""
+      }
+    ],
+    "testimonials": [
+      {
+        "id": "test-1",
+        "name": "Mr. Silas Odhiambo",
+        "role": "Head Teacher",
+        "organization": "Bar Ogwal Primary and Junior School, East Kisumu",
+        "quote": "Jacinta Akinyi Owino brought an extraordinary breath of energy and intellectual rigor to our institution. Her passion for the pupils was matched by her dedication to hygiene and school sanitation. Bar Ogwal was privileged to have her on attachment.",
+        "relationship": "Teaching Practice Host Administrator",
+        "avatarUrl": ""
+      },
+      {
+        "id": "test-2",
+        "name": "Dr. Pamela Ouma",
+        "role": "Senior Lecturer in Early Childhood Education",
+        "organization": "School of Education, Maseno University",
+        "quote": "Jacinta is one of Maseno University's brightest lights in ECDE pedagogy. Her grasp of child developmental psychology, combined with her practical creativity in low-cost instructional media, positions her as a future leader in Kenyan education.",
+        "relationship": "Academic Department Mentor & Lecturer",
+        "avatarUrl": ""
+      },
+      {
+        "id": "test-3",
+        "name": "Mrs. Beatrice Achieng'",
+        "role": "Senior Mentor Teacher (PP2 Lead)",
+        "organization": "Bar Ogwal Primary and Junior School",
+        "quote": "Working alongside Jacinta was seamless. She prepares her schemes of work meticulously and manages the young learners with immense warmth, firm boundaries, and boundless creative joy. Any school hiring her will be truly blessed.",
+        "relationship": "Co-Teacher & Practicum Supervisor",
+        "avatarUrl": ""
+      }
+    ],
+    "timeline": [
+      {
+        "id": "time-1",
+        "year": "2021",
+        "title": "Admission to Maseno University",
+        "institutionOrPlace": "Maseno University, Kisumu",
+        "description": "Admitted into the prestigious Bachelor of Education (ECDE) program under admission number EEC/00001/024.",
+        "type": "academic"
+      },
+      {
+        "id": "time-2",
+        "year": "2022",
+        "title": "Foundational Practicum & Child Observation",
+        "institutionOrPlace": "Maseno Educational Laboratories",
+        "description": "Completed comprehensive clinical observation studies on sensory motor stages, linguistic milestones, and classroom acoustics.",
+        "type": "academic"
+      },
+      {
+        "id": "time-3",
+        "year": "2023",
+        "title": "Community Outreach Lead & Association Chair",
+        "institutionOrPlace": "MUESA / Kisumu County Schools",
+        "description": "Elected to lead early learning community book drives and sanitary kit distribution in underserved lakeside nursery centres.",
+        "type": "award"
+      },
+      {
+        "id": "time-4",
+        "year": "2024",
+        "title": "6-Week Teaching Attachment at Bar Ogwal",
+        "institutionOrPlace": "Bar Ogwal Primary & Junior School, East Kisumu",
+        "description": "Delivered 120+ classroom teaching hours, led environmental sanitation reforms, and received Grade A supervisor evaluations.",
+        "type": "practical"
+      },
+      {
+        "id": "time-5",
+        "year": "2025",
+        "title": "Final Capstone Defense & Upcoming Graduation",
+        "institutionOrPlace": "Maseno University",
+        "description": "Finalizing undergraduate research dissertation on 'Integrating Environmental Hygiene into CBC Early Years Foundation in Kisumu'.",
+        "type": "academic"
+      }
+    ],
+    "documents": [
+      {
+        "id": "doc-1",
+        "title": "Jacinta Akinyi Owino - Comprehensive Academic CV",
+        "category": "Academic Report",
+        "fileSize": "284 KB",
+        "uploadDate": "August 2024",
+        "description": "Full professional curriculum vitae detailing academic coursework, teaching practice scores, certifications, and referees.",
+        "downloadUrl": "#cv-download"
+      },
+      {
+        "id": "doc-2",
+        "title": "CBC Schemes of Work - PP2 Language Activities",
+        "category": "Lesson Plan",
+        "fileSize": "410 KB",
+        "uploadDate": "June 2024",
+        "description": "Complete 6-week termly breakdown with learning areas, specific learning outcomes, key inquiry questions, and assessment criteria.",
+        "downloadUrl": "#"
+      },
+      {
+        "id": "doc-3",
+        "title": "School WASH & Environmental Sanitation Action Plan",
+        "category": "Sanitation Plan",
+        "fileSize": "325 KB",
+        "uploadDate": "June 2024",
+        "description": "Operational framework implemented at Bar Ogwal Primary covering tippy-taps, hygiene assemblies, and student sanitation monitors.",
+        "downloadUrl": "#"
+      },
+      {
+        "id": "doc-4",
+        "title": "Bar Ogwal Teaching Attachment Completion Certificate & Logbook",
+        "category": "Attachment Log",
+        "fileSize": "560 KB",
+        "uploadDate": "July 2024",
+        "description": "Verified institutional logbook signed by Head Teacher and Maseno University Department of Educational Psychology Assessor.",
+        "downloadUrl": "#"
+      }
+    ],
+    "siteSettings": {
+      "primaryColor": "#8A0F7D",
+      "secondaryColor": "#6A0DAD",
+      "accentColor": "#C8A2C8",
+      "backgroundColor": "#FAF7FB",
+      "siteTitle": "Jacinta Akinyi Owino | Professional E-Portfolio",
+      "logoText": "Jacinta Akinyi Owino",
+      "footerText": "© 2025 Jacinta Akinyi Owino. Bachelor of Education (ECDE) - Maseno University. All Rights Reserved.",
+      "enableVisitorCounter": true,
+      "seoDescription": "Official professional e-portfolio for Jacinta Akinyi Owino, Bachelor of Education (ECDE) student from Maseno University. Teaching practice at Bar Ogwal Primary, East Kisumu.",
+      "seoKeywords": "Jacinta Akinyi Owino, Maseno University, Bachelor of Education, ECDE, Bar Ogwal Primary, Teaching Practice, East Kisumu, Kenya Education, CBC, Early Childhood",
+      "firebaseSyncEnabled": false
+    },
+    "visitorCount": 1428
+  },
+  "adminUser": {
+    "email": "jecinterowino88@gmail.com",
+    "name": "Jacinta Akinyi Owino",
+    "role": "admin",
+    "passwordHash": "cea03f809a6f394f4d757442ebe8037458c6e389f307a8803b3426bf1f4f698d41a5962aa2b2920c83f5e52c9aff6627563b9a3c2487e8e42512b3e064a3fa02",
+    "passwordSalt": "f4f23e39194a718cb50ef582d4a743db"
+  },
+  "messages": [
+    {
+      "id": "msg-seed-1",
+      "name": "Dr. Pamela Ouma",
+      "email": "p.ouma@maseno.ac.ke",
+      "subject": "Commendation on Teaching Practice Portfolio",
+      "message": "Jacinta, your documentation of the Bar Ogwal teaching attachment is exemplary. The Department of Educational Psychology is very proud of your progress. Keep up the high standards!",
+      "date": "2026-09-02T20:16:05.895Z",
+      "isRead": false
+    }
+  ]
+}

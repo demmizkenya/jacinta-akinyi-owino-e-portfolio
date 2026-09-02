@@ -142,13 +142,34 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <div className="w-full max-w-sm">
               <div className="bg-slate-50 dark:bg-zinc-900 p-3 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm">
                 <div className="aspect-[4/5] overflow-hidden rounded-xl bg-slate-200 dark:bg-zinc-800 relative">
-                  <img
-                    id="hero-profile-photo"
-                    src={profile.avatarUrl}
-                    alt={profile.name}
-                    className="w-full h-full object-cover object-top"
-                    referrerPolicy="no-referrer"
-                  />
+                  {profile.avatarUrl ? (
+                    <img
+                      id="hero-profile-photo"
+                      src={profile.avatarUrl}
+                      alt={profile.name}
+                      className="w-full h-full object-cover object-top"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-[#F7F2F8] dark:bg-zinc-800/80 text-slate-700 dark:text-slate-300">
+                      <div className="w-20 h-20 rounded-2xl bg-[#7A1C6D] text-white flex items-center justify-center font-serif font-bold text-2xl shadow-sm mb-3">
+                        JO
+                      </div>
+                      <h4 className="font-serif font-bold text-base text-slate-900 dark:text-white">
+                        {profile.name}
+                      </h4>
+                      <p className="text-xs text-[#7A1C6D] dark:text-[#D8A0D0] font-medium mt-0.5">
+                        {profile.course}
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                        {profile.institution}
+                      </p>
+                      <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-[11px] text-slate-600 dark:text-slate-400">
+                        <GraduationCap className="w-3.5 h-3.5 text-[#7A1C6D] dark:text-[#D8A0D0]" />
+                        <span>Educator Portrait</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="pt-3 px-1 text-center sm:text-left flex items-center justify-between">
                   <div>

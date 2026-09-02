@@ -66,75 +66,87 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
           ))}
         </div>
 
-        {/* Gallery Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredItems.map((item) => {
-            const mediaUrl = item.url || (item as any).imageUrl;
-            const isVideo = item.type === 'video';
+        {/* Gallery Grid or Empty State */}
+        {filteredItems.length === 0 ? (
+          <div className="bg-white dark:bg-zinc-900 rounded-xl p-12 text-center border border-slate-200 dark:border-zinc-800">
+            <FolderCheck className="w-10 h-10 mx-auto text-[#7A1C6D] dark:text-[#D8A0D0] mb-3 opacity-75" />
+            <h3 className="font-serif font-bold text-lg text-slate-900 dark:text-white mb-1">
+              Practicum Gallery Ready
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+              No images currently published in this album. When the site administrator uploads and saves images via the Admin CMS, they will appear here permanently across all devices and browsers.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredItems.map((item) => {
+              const mediaUrl = item.url || (item as any).imageUrl;
+              const isVideo = item.type === 'video';
 
-            return (
-              <div
-                key={item.id}
-                onClick={() => onOpenLightbox(item)}
-                className="group bg-white dark:bg-zinc-900 rounded-xl overflow-hidden border border-slate-200 dark:border-zinc-800 shadow-sm hover:border-slate-300 dark:hover:border-zinc-700 cursor-pointer transition-colors duration-150 flex flex-col"
-              >
-                {/* Media Container */}
-                <div className="relative aspect-[4/3] bg-slate-100 dark:bg-zinc-800 overflow-hidden">
-                  <img
-                    src={mediaUrl}
-                    alt={item.title}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    referrerPolicy="no-referrer"
-                    loading="lazy"
-                  />
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => onOpenLightbox(item)}
+                  className="group bg-white dark:bg-zinc-900 rounded-xl overflow-hidden border border-slate-200 dark:border-zinc-800 shadow-sm hover:border-slate-300 dark:hover:border-zinc-700 cursor-pointer transition-colors duration-150 flex flex-col"
+                >
+                  {/* Media Container */}
+                  <div className="relative aspect-[4/3] bg-slate-100 dark:bg-zinc-800 overflow-hidden">
+                    <img
+                      src={mediaUrl}
+                      alt={item.title}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      referrerPolicy="no-referrer"
+                      loading="lazy"
+                    />
 
-                  {isVideo && (
-                    <div className="absolute top-3 right-3 px-2 py-1 rounded bg-black/70 text-white text-[10px] font-semibold flex items-center gap-1">
-                      <Play className="w-3 h-3 fill-current" />
-                      <span>Video</span>
-                    </div>
-                  )}
+                    {isVideo && (
+                      <div className="absolute top-3 right-3 px-2 py-1 rounded bg-black/70 text-white text-[10px] font-semibold flex items-center gap-1">
+                        <Play className="w-3 h-3 fill-current" />
+                        <span>Video</span>
+                      </div>
+                    )}
 
-                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span className="p-2.5 rounded-lg bg-white/90 text-slate-900 text-xs font-semibold flex items-center gap-1.5 shadow-sm">
-                      <Maximize2 className="w-4 h-4" />
-                      <span>View Full Image</span>
-                    </span>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div className="p-5 flex-1 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-semibold text-[#7A1C6D] dark:text-[#D8A0D0] uppercase tracking-wider">
-                        {item.category}
-                      </span>
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                        {item.date}
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="p-2.5 rounded-lg bg-white/90 text-slate-900 text-xs font-semibold flex items-center gap-1.5 shadow-sm">
+                        <Maximize2 className="w-4 h-4" />
+                        <span>View Full Image</span>
                       </span>
                     </div>
-
-                    <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white mb-2 leading-snug">
-                      {item.title}
-                    </h3>
-
-                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                      {item.description}
-                    </p>
                   </div>
 
-                  <div className="pt-3 mt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                    <span>Album: {item.album}</span>
-                    <span className="text-[#7A1C6D] dark:text-[#D8A0D0] font-medium inline-flex items-center gap-1">
-                      Inspect
-                    </span>
+                  {/* Content */}
+                  <div className="p-5 flex-1 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[11px] font-semibold text-[#7A1C6D] dark:text-[#D8A0D0] uppercase tracking-wider">
+                          {item.category}
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                          {item.date}
+                        </span>
+                      </div>
+
+                      <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white mb-2 leading-snug">
+                        {item.title}
+                      </h3>
+
+                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                        {item.description}
+                      </p>
+                    </div>
+
+                    <div className="pt-3 mt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                      <span>Album: {item.album}</span>
+                      <span className="text-[#7A1C6D] dark:text-[#D8A0D0] font-medium inline-flex items-center gap-1">
+                        Inspect
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
       </div>
     </section>

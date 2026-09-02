@@ -7,7 +7,7 @@ export const initialPortfolioData: PortfolioData = {
     course: "Bachelor of Education (ECDE)",
     institution: "Maseno University",
     admissionNumber: "EEC/00001/024",
-    avatarUrl: "/src/assets/images/jacinta_profile_portrait_1788380004313.jpg",
+    avatarUrl: "",
     shortBio: "Dedicated Early Childhood Development and Education scholar from Maseno University with comprehensive hands-on teaching practice experience at Bar Ogwal Primary and Junior School, East Kisumu. Passionate about child-centered pedagogy, foundational literacy, and environmental sanitation.",
     fullBio: "Jacinta Akinyi Owino is an enthusiastic, compassionate, and pedagogically trained educator currently completing her Bachelor of Education in Early Childhood Development and Education (ECDE) at Maseno University. Rooted in research-backed instructional strategies and Kenya's Competency-Based Curriculum (CBC) framework, Jacinta bridges classroom instruction with holistic community wellness, hygiene sensitization, and tailored early intervention for diverse learners.",
     careerObjective: "To foster stimulating, safe, and inclusive early childhood learning environments that empower young learners with cognitive, psychomotor, emotional, and social foundations, while championing active school health, sanitation, and community collaboration.",
@@ -217,69 +217,7 @@ export const initialPortfolioData: PortfolioData = {
       description: "Mobilizing local community stakeholders, bridging home-school cultural connections, and advocating for child welfare."
     }
   ],
-  gallery: [
-    {
-      id: "gal-1",
-      title: "Interactive Phonics Instruction at Bar Ogwal",
-      description: "Jacinta guiding PP2 learners through letter sound recognition and blending drills using handmade flashcards.",
-      type: "image",
-      url: "/src/assets/images/bar_ogwal_teaching_1788380020720.jpg",
-      category: "Teaching Practice",
-      album: "Bar Ogwal Attachment",
-      date: "June 2024"
-    },
-    {
-      id: "gal-2",
-      title: "Environmental Hygiene & Water Station Activity",
-      description: "Jacinta instructing pupils on hygienic handwashing and tree planting at Bar Ogwal Primary School compound.",
-      type: "image",
-      url: "/src/assets/images/hygiene_community_work_1788380040211.jpg",
-      category: "Sanitation & Hygiene",
-      album: "Clean Hands Campaign",
-      date: "June 2024"
-    },
-    {
-      id: "gal-3",
-      title: "Professional Portrait - Academic & Educator Profile",
-      description: "Official academic portrait of Jacinta Akinyi Owino, Bachelor of Education (ECDE) scholar, Maseno University.",
-      type: "image",
-      url: "/src/assets/images/jacinta_profile_portrait_1788380004313.jpg",
-      category: "Maseno Campus",
-      album: "Academic Profile",
-      date: "September 2024"
-    },
-    {
-      id: "gal-4",
-      title: "Tactile Learning Aids & Manipulatives Exhibition",
-      description: "Display of bottle-top counters, shape sorters, and abacus counting frames fabricated from sustainable local materials.",
-      type: "image",
-      url: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1000&q=80",
-      category: "Classroom",
-      album: "Instructional Aids",
-      date: "June 2024"
-    },
-    {
-      id: "gal-5",
-      title: "CBC Formative Assessment & Learner Portfolios",
-      description: "Reviewing individual learner portfolio progress and recording milestone achievements in the rubric journal.",
-      type: "image",
-      url: "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1000&q=80",
-      category: "Teaching Practice",
-      album: "Bar Ogwal Attachment",
-      date: "July 2024"
-    },
-    {
-      id: "gal-6",
-      title: "Early Childhood Demonstration Class (Video Showcase)",
-      description: "A 5-minute video demonstration highlighting active singing, psychomotor warmups, and call-and-response engagement.",
-      type: "video",
-      url: "https://assets.mixkit.co/videos/preview/mixkit-teacher-reading-a-book-to-her-pupils-40344-large.mp4",
-      thumbnailUrl: "https://images.unsplash.com/photo-1588072432836-e10032774350?auto=format&fit=crop&w=1000&q=80",
-      category: "Classroom",
-      album: "Pedagogy in Action",
-      date: "July 2024"
-    }
-  ],
+  gallery: [],
   blog: [
     {
       id: "blog-1",
@@ -303,7 +241,7 @@ In our PP2 classroom, the spectrum of pupil readiness was immediately evident:
       readingTime: "4 min read",
       tags: ["Teaching Practice", "ECDE", "Bar Ogwal", "Empathy", "Learner Diversity"],
       isPublished: true,
-      imageUrl: "/src/assets/images/bar_ogwal_teaching_1788380020720.jpg"
+      imageUrl: ""
     },
     {
       id: "blog-2",
@@ -328,7 +266,7 @@ When assessing mathematical activities at the end of Week 3, 94% of our learners
       readingTime: "5 min read",
       tags: ["Mathematics", "Manipulatives", "Instructional Aids", "CBC", "Maseno University"],
       isPublished: true,
-      imageUrl: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1000&q=80"
+      imageUrl: ""
     },
     {
       id: "blog-3",
@@ -353,7 +291,7 @@ Within three weeks, routine absenteeism dropped noticeably, and handwashing beca
       readingTime: "6 min read",
       tags: ["Sanitation", "Environmental Health", "WASH", "Community Outreach", "Bar Ogwal"],
       isPublished: true,
-      imageUrl: "/src/assets/images/hygiene_community_work_1788380040211.jpg"
+      imageUrl: ""
     },
     {
       id: "blog-4",
@@ -378,7 +316,7 @@ This approach invited parents into the learning journey during our consultative 
       readingTime: "5 min read",
       tags: ["CBC", "Assessment", "Curriculum", "Pedagogy", "Education Kenya"],
       isPublished: true,
-      imageUrl: "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1000&q=80"
+      imageUrl: ""
     }
   ],
   testimonials: [
@@ -389,7 +327,7 @@ This approach invited parents into the learning journey during our consultative 
       organization: "Bar Ogwal Primary and Junior School, East Kisumu",
       quote: "Jacinta Akinyi Owino brought an extraordinary breath of energy and intellectual rigor to our institution. Her passion for the pupils was matched by her dedication to hygiene and school sanitation. Bar Ogwal was privileged to have her on attachment.",
       relationship: "Teaching Practice Host Administrator",
-      avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80"
+      avatarUrl: ""
     },
     {
       id: "test-2",
@@ -398,7 +336,7 @@ This approach invited parents into the learning journey during our consultative 
       organization: "School of Education, Maseno University",
       quote: "Jacinta is one of Maseno University's brightest lights in ECDE pedagogy. Her grasp of child developmental psychology, combined with her practical creativity in low-cost instructional media, positions her as a future leader in Kenyan education.",
       relationship: "Academic Department Mentor & Lecturer",
-      avatarUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80"
+      avatarUrl: ""
     },
     {
       id: "test-3",
@@ -407,7 +345,7 @@ This approach invited parents into the learning journey during our consultative 
       organization: "Bar Ogwal Primary and Junior School",
       quote: "Working alongside Jacinta was seamless. She prepares her schemes of work meticulously and manages the young learners with immense warmth, firm boundaries, and boundless creative joy. Any school hiring her will be truly blessed.",
       relationship: "Co-Teacher & Practicum Supervisor",
-      avatarUrl: "https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&w=300&q=80"
+      avatarUrl: ""
     }
   ],
   timeline: [
