@@ -1,0 +1,467 @@
+import express, { Request, Response, NextFunction } from 'express';
+import path from 'path';
+import fs from 'fs';
+import crypto from 'crypto';
+import { createServer as createViteServer } from 'vite';
+import { initialPortfolioData } from './src/data/initialData';
+
+const PORT = 3000;
+const DATA_DIR = path.join(process.cwd(), 'data');
+const DB_FILE = path.join(DATA_DIR, 'portfolio_db.json');
+
+// Ensure data directory exists
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// Password hashing utility using PBKDF2
+function hashPassword(password: string, salt?: string): { salt: string; hash: string } {
+  const actualSalt = salt || crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, actualSalt, 100000, 64, 'sha512').toString('hex');
+  return { salt: actualSalt, hash };
+}
+
+function verifyPassword(password: string, salt: string, expectedHash: string): boolean {
+  const { hash } = hashPassword(password, salt);
+  return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(expectedHash));
+}
+
+// Initialize Database structure
+interface DBStructure {
+  portfolio: typeof initialPortfolioData;
+  adminUser: {
+    email: string;
+    name: string;
+    role: 'admin';
+    passwordHash: string;
+    passwordSalt: string;
+  };
+  messages: Array<{
+    id: string;
+    name: string;
+    email: string;
+    subject: string;
+    message: string;
+    date: string;
+    isRead: boolean;
+  }>;
+}
+
+function loadDB(): DBStructure {
+  if (fs.existsSync(DB_FILE)) {
+    try {
+      const raw = fs.readFileSync(DB_FILE, 'utf-8');
+      return JSON.parse(raw);
+    } catch (err) {
+      console.error('Error reading database file, creating fresh DB:', err);
+    }
+  }
+
+  // Initial Seed for Admin Account: jecinterowino88@gmail.com with initial password
+  const initialAdminPass = '@Jacinta.com';
+  const { salt, hash } = hashPassword(initialAdminPass);
+
+  const initialDB: DBStructure = {
+    portfolio: initialPortfolioData,
+    adminUser: {
+      email: 'jecinterowino88@gmail.com',
+      name: 'Jacinta Akinyi Owino',
+      role: 'admin',
+      passwordHash: hash,
+      passwordSalt: salt,
+    },
+    messages: [
+      {
+        id: 'msg-seed-1',
+        name: 'Dr. Pamela Ouma',
+        email: 'p.ouma@maseno.ac.ke',
+        subject: 'Commendation on Teaching Practice Portfolio',
+        message: 'Jacinta, your documentation of the Bar Ogwal teaching attachment is exemplary. The Department of Educational Psychology is very proud of your progress. Keep up the high standards!',
+        date: new Date().toISOString(),
+        isRead: false,
+      },
+    ],
+  };
+
+  fs.writeFileSync(DB_FILE, JSON.stringify(initialDB, null, 2), 'utf-8');
+  return initialDB;
+}
+
+function saveDB(data: DBStructure) {
+  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+}
+
+let db = loadDB();
+
+// Active session store (token -> session)
+interface Session {
+  token: string;
+  email: string;
+  role: 'admin';
+  expiresAt: number;
+}
+const activeSessions = new Map<string, Session>();
+
+// In-memory rate limiting for login
+const loginAttempts = new Map<string, { count: number; blockedUntil: number }>();
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const attempt = loginAttempts.get(ip);
+  if (!attempt) return true;
+  if (attempt.blockedUntil > now) return false;
+  if (now - attempt.blockedUntil > 0 && attempt.blockedUntil !== 0) {
+    // block expired
+    loginAttempts.delete(ip);
+    return true;
+  }
+  return attempt.count < 6;
+}
+
+function recordFailedLogin(ip: string) {
+  const now = Date.now();
+  const attempt = loginAttempts.get(ip) || { count: 0, blockedUntil: 0 };
+  attempt.count += 1;
+  if (attempt.count >= 5) {
+    attempt.blockedUntil = now + 15 * 60 * 1000; // Block for 15 minutes
+  }
+  loginAttempts.set(ip, attempt);
+}
+
+function clearRateLimit(ip: string) {
+  loginAttempts.delete(ip);
+}
+
+// Authentication middleware
+function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'Unauthorized: No token provided' });
+    return;
+  }
+  const token = authHeader.split(' ')[1];
+  const session = activeSessions.get(token);
+  if (!session || session.expiresAt < Date.now()) {
+    if (session) activeSessions.delete(token);
+    res.status(401).json({ error: 'Session expired or invalid. Please log in again.' });
+    return;
+  }
+  // Refresh session activity
+  session.expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24h
+  next();
+}
+
+async function startServer() {
+  const app = express();
+
+  // Basic security headers & parsing
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+  app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    next();
+  });
+
+  // ----------------------------------------------------
+  // API Routes
+  // ----------------------------------------------------
+
+  // 1. Get public portfolio data
+  app.get('/api/portfolio', (_req: Request, res: Response) => {
+    res.json(db.portfolio);
+  });
+
+  // 2. Increment visitor counter
+  app.post('/api/visitor', (_req: Request, res: Response) => {
+    db.portfolio.visitorCount = (db.portfolio.visitorCount || 0) + 1;
+    saveDB(db);
+    res.json({ visitorCount: db.portfolio.visitorCount });
+  });
+
+  // 3. Admin Authentication Login
+  app.post('/api/auth/login', (req: Request, res: Response) => {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    if (!checkRateLimit(ip)) {
+      res.status(429).json({ error: 'Too many failed login attempts. Please try again after 15 minutes.' });
+      return;
+    }
+
+    const { email, password } = req.body;
+    if (!email || !password) {
+      res.status(400).json({ error: 'Email and password are required' });
+      return;
+    }
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    if (cleanEmail !== db.adminUser.email.toLowerCase()) {
+      recordFailedLogin(ip);
+      res.status(401).json({ error: 'Invalid email or password' });
+      return;
+    }
+
+    const isValid = verifyPassword(String(password), db.adminUser.passwordSalt, db.adminUser.passwordHash);
+    if (!isValid) {
+      recordFailedLogin(ip);
+      res.status(401).json({ error: 'Invalid email or password' });
+      return;
+    }
+
+    clearRateLimit(ip);
+
+    // Generate cryptographic token
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    activeSessions.set(token, {
+      token,
+      email: db.adminUser.email,
+      role: 'admin',
+      expiresAt,
+    });
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        email: db.adminUser.email,
+        name: db.adminUser.name,
+        role: db.adminUser.role,
+      },
+    });
+  });
+
+  // 4. Verify current session
+  app.get('/api/auth/me', (req: Request, res: Response) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ authenticated: false });
+      return;
+    }
+    const token = authHeader.split(' ')[1];
+    const session = activeSessions.get(token);
+    if (!session || session.expiresAt < Date.now()) {
+      res.status(401).json({ authenticated: false });
+      return;
+    }
+    res.json({
+      authenticated: true,
+      user: {
+        email: db.adminUser.email,
+        name: db.adminUser.name,
+        role: db.adminUser.role,
+      },
+    });
+  });
+
+  // 5. Logout
+  app.post('/api/auth/logout', (req: Request, res: Response) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      activeSessions.delete(token);
+    }
+    res.json({ success: true });
+  });
+
+  // 6. Change Password (Admin only)
+  app.post('/api/auth/change-password', requireAdmin, (req: Request, res: Response) => {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword || newPassword.length < 6) {
+      res.status(400).json({ error: 'Valid current password and new password (min 6 chars) required' });
+      return;
+    }
+
+    const isValid = verifyPassword(String(currentPassword), db.adminUser.passwordSalt, db.adminUser.passwordHash);
+    if (!isValid) {
+      res.status(401).json({ error: 'Current password incorrect' });
+      return;
+    }
+
+    const { salt, hash } = hashPassword(String(newPassword));
+    db.adminUser.passwordSalt = salt;
+    db.adminUser.passwordHash = hash;
+    saveDB(db);
+
+    res.json({ success: true, message: 'Password updated successfully' });
+  });
+
+  // 7. Update Portfolio Section (Admin only)
+  app.put('/api/admin/section/:section', requireAdmin, (req: Request, res: Response) => {
+    const { section } = req.params;
+    const data = req.body;
+
+    const allowedSections = [
+      'profile',
+      'academic',
+      'teachingPractice',
+      'skills',
+      'gallery',
+      'blog',
+      'testimonials',
+      'timeline',
+      'documents',
+      'siteSettings',
+    ];
+
+    if (!allowedSections.includes(section)) {
+      res.status(400).json({ error: `Invalid section: ${section}` });
+      return;
+    }
+
+    // @ts-ignore dynamic index
+    db.portfolio[section] = data;
+    saveDB(db);
+
+    res.json({ success: true, section, data });
+  });
+
+  // 8. Contact Form submission (Public)
+  app.post('/api/contact', (req: Request, res: Response) => {
+    const { name, email, subject, message } = req.body;
+    if (!name || !email || !message) {
+      res.status(400).json({ error: 'Name, email, and message are required' });
+      return;
+    }
+
+    const newMessage = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      name: String(name).trim().slice(0, 100),
+      email: String(email).trim().slice(0, 150),
+      subject: String(subject || 'Inquiry regarding ECDE Teaching').trim().slice(0, 150),
+      message: String(message).trim().slice(0, 3000),
+      date: new Date().toISOString(),
+      isRead: false,
+    };
+
+    db.messages.unshift(newMessage);
+    saveDB(db);
+
+    res.json({ success: true, message: 'Thank you! Your message has been delivered to Jacinta Akinyi Owino.' });
+  });
+
+  // 9. Admin view messages
+  app.get('/api/admin/messages', requireAdmin, (_req: Request, res: Response) => {
+    res.json(db.messages);
+  });
+
+  // 10. Admin mark message read
+  app.put('/api/admin/messages/:id/read', requireAdmin, (req: Request, res: Response) => {
+    const { id } = req.params;
+    const msg = db.messages.find((m) => m.id === id);
+    if (msg) {
+      msg.isRead = true;
+      saveDB(db);
+    }
+    res.json({ success: true });
+  });
+
+  // 11. Admin delete message
+  app.delete('/api/admin/messages/:id', requireAdmin, (req: Request, res: Response) => {
+    const { id } = req.params;
+    db.messages = db.messages.filter((m) => m.id !== id);
+    saveDB(db);
+    res.json({ success: true });
+  });
+
+  // 12. Media/File upload endpoint
+  app.post('/api/admin/upload', requireAdmin, (req: Request, res: Response) => {
+    const { filename, fileData, fileType } = req.body;
+    if (!fileData) {
+      res.status(400).json({ error: 'No file data provided' });
+      return;
+    }
+
+    try {
+      // Validate base64 or data URL
+      const isDataUrl = typeof fileData === 'string' && fileData.startsWith('data:');
+      let base64Content = fileData;
+      let extension = '.jpg';
+
+      if (isDataUrl) {
+        const matches = fileData.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+          const mime = matches[1];
+          base64Content = matches[2];
+          if (mime.includes('png')) extension = '.png';
+          else if (mime.includes('webp')) extension = '.webp';
+          else if (mime.includes('pdf')) extension = '.pdf';
+          else if (mime.includes('mp4')) extension = '.mp4';
+        }
+      }
+
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const safeName = `upload_${Date.now()}_${Math.random().toString(36).substring(2, 7)}${extension}`;
+      const filePath = path.join(uploadsDir, safeName);
+
+      fs.writeFileSync(filePath, Buffer.from(base64Content, 'base64'));
+
+      res.json({
+        success: true,
+        url: `/uploads/${safeName}`,
+        filename: safeName,
+      });
+    } catch (err: any) {
+      console.error('File upload error:', err);
+      res.status(500).json({ error: 'Failed to save uploaded file' });
+    }
+  });
+
+  // 13. Backup & Restore
+  app.get('/api/admin/backup', requireAdmin, (_req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="jacinta_portfolio_backup_${new Date().toISOString().split('T')[0]}.json"`);
+    res.send(JSON.stringify(db, null, 2));
+  });
+
+  app.post('/api/admin/restore', requireAdmin, (req: Request, res: Response) => {
+    const backupData = req.body;
+    if (!backupData || !backupData.portfolio) {
+      res.status(400).json({ error: 'Invalid backup file structure' });
+      return;
+    }
+
+    db.portfolio = backupData.portfolio;
+    if (backupData.messages) db.messages = backupData.messages;
+    saveDB(db);
+
+    res.json({ success: true, message: 'Database successfully restored from backup' });
+  });
+
+  // 14. Reset to Initial Defaults
+  app.post('/api/admin/reset-defaults', requireAdmin, (_req: Request, res: Response) => {
+    db.portfolio = JSON.parse(JSON.stringify(initialPortfolioData));
+    saveDB(db);
+    res.json({ success: true, message: 'Portfolio reset to authentic defaults.' });
+  });
+
+  // ----------------------------------------------------
+  // Vite Integration (SPA Middleware / Static Serving)
+  // ----------------------------------------------------
+  if (process.env.NODE_ENV !== 'production') {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: 'spa',
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.join(process.cwd(), 'dist');
+    app.use(express.static(distPath));
+    app.get('*', (_req: Request, res: Response) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  }
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Jacinta Akinyi Owino E-Portfolio Server running on http://0.0.0.0:${PORT}`);
+  });
+}
+
+startServer().catch((err) => {
+  console.error('Failed to start server:', err);
+});

@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --primary: #7A1C6D;
+    --primary-hover: #66155B;
+    --primary-tint: #F5EEF7;
+    --bg-light: #FFFFFF;
+    --card-light: #FFFFFF;
+    --text-dark: #0F172A;
+  }
+
+  .dark {
+    --primary: #9E2B8D;
+    --primary-hover: #B536A2;
+    --primary-tint: #241323;
+    --bg-light: #0F0F12;
+    --card-light: #18181B;
+    --text-dark: #F8FAFC;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    color: #0F172A;
+    background-color: #FFFFFF;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Playfair Display', Georgia, serif;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Professional minimal scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+.dark ::-webkit-scrollbar-track {
+  background: #18181B;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #7A1C6D;
+}
+
+/* Print styles for CV */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-cv, #printable-cv * {
+    visibility: visible;
+  }
+  #printable-cv {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    background: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
