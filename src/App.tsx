@@ -66,21 +66,9 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
 
-    // Fetch portfolio data from server, Firestore, or local storage
-    const fetchPortfolio = async () => {
-      // 1. Check local storage cache first for instant load
-      const cached = localStorage.getItem('jacinta_portfolio_data');
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          setData(parsed);
-          if (parsed.visitorCount) {
-            setVisitorCount(parsed.visitorCount);
-          }
-        } catch {}
-      }
-
-      // 2. Fetch latest from server
+    // Direct authoritative fetch from database / backend server
+    const fetchAuthoritativePortfolio = async () => {
+      // 1. First fetch directly from backend API / database (authoritative source)
       try {
         const res = await fetch('/api/portfolio');
         if (res.ok) {
@@ -90,21 +78,36 @@ export default function App() {
           if (fetchedData.visitorCount) {
             setVisitorCount(fetchedData.visitorCount);
           }
+          console.log('[Authoritative Sync]: Retrieved latest portfolio state directly from database.');
+          return;
         }
       } catch (err) {
-        console.warn('Backend API unavailable. Utilizing local persisted portfolio data.');
+        console.warn('Backend API temporarily unreachable. Checking cloud Firestore...');
       }
 
-      // 3. Check Firestore for latest documents
+      // 2. Check Firestore for latest documents
       try {
         const cloudData = await fetchPortfolioFromFirestore();
         if (cloudData) {
-          console.log('[App]: Successfully retrieved portfolio data from Firestore cloud database');
+          console.log('[App]: Retrieved portfolio data from Firestore cloud database');
           setData((prev) => ({ ...prev, ...cloudData }));
           localStorage.setItem('jacinta_portfolio_data', JSON.stringify(cloudData));
+          return;
         }
       } catch (fbErr) {
         console.warn('[App]: Firestore cloud fetch skipped:', fbErr);
+      }
+
+      // 3. Fallback to cached copy only if completely offline
+      const cached = localStorage.getItem('jacinta_portfolio_data');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          setData(parsed);
+          if (parsed.visitorCount) {
+            setVisitorCount(parsed.visitorCount);
+          }
+        } catch {}
       }
     };
 
@@ -116,16 +119,40 @@ export default function App() {
       }
     });
 
+    // Automatic background synchronization: polls version every 8 seconds so any admin changes appear globally
+    let knownVersion = 0;
+    const syncInterval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/portfolio/version');
+        if (res.ok) {
+          const info = await res.json();
+          if (info.version) {
+            if (knownVersion !== 0 && info.version > knownVersion) {
+              console.log(`[Auto-Sync]: New administrator upload detected (v${info.version}). Synchronizing view...`);
+              const pRes = await fetch('/api/portfolio');
+              if (pRes.ok) {
+                const freshData = await pRes.json();
+                setData(freshData);
+                localStorage.setItem('jacinta_portfolio_data', JSON.stringify(freshData));
+              }
+            }
+            knownVersion = info.version;
+          }
+        }
+      } catch {
+        // Silent catch for background poll
+      }
+    }, 8000);
+
     // Increment visitor counter on server
     const incrementVisitor = async () => {
       try {
-        const res = await fetch('/api/visitor-count', { method: 'POST' });
+        const res = await fetch('/api/visitor', { method: 'POST' });
         if (res.ok) {
           const resData = await res.json();
           setVisitorCount(resData.visitorCount);
         }
       } catch (err) {
-        // Fallback local increment
         setVisitorCount((prev) => prev + 1);
       }
     };
@@ -159,12 +186,13 @@ export default function App() {
       }
     };
 
-    fetchPortfolio();
+    fetchAuthoritativePortfolio();
     incrementVisitor();
     verifyToken();
 
     return () => {
       if (unsubscribeFirestore) unsubscribeFirestore();
+      clearInterval(syncInterval);
     };
   }, []);
 

@@ -10,6 +10,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { Profile, AcademicInfo, SiteSettings } from '../types';
+import { SafeImage } from './SafeImage';
 
 interface HeroSectionProps {
   profile: Profile;
@@ -143,12 +144,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <div className="bg-slate-50 dark:bg-zinc-900 p-3 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm">
                 <div className="aspect-[4/5] overflow-hidden rounded-xl bg-slate-200 dark:bg-zinc-800 relative">
                   {profile.avatarUrl ? (
-                    <img
+                    <SafeImage
                       id="hero-profile-photo"
                       src={profile.avatarUrl}
                       alt={profile.name}
                       className="w-full h-full object-cover object-top"
-                      referrerPolicy="no-referrer"
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-[#F7F2F8] dark:bg-zinc-800/80 text-slate-700 dark:text-slate-300">

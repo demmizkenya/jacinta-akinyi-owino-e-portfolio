@@ -33,6 +33,7 @@ import {
 import { getFirebaseDiagnostics, testFirestoreConnection, firebaseConfig, syncPortfolioToFirestore } from '../lib/firebase';
 import { uploadPermanentImage, UploadResult } from '../lib/storageService';
 import { validateImageFile } from '../lib/imageOptimizer';
+import { MediaManagerDashboard } from './MediaManagerDashboard';
 import { 
   PortfolioData, 
   AuthUser, 
@@ -64,7 +65,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onLogout,
 }) => {
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'profile' | 'attachment' | 'skills' | 'gallery' | 'blog' | 'messages' | 'documents' | 'settings'
+    'overview' | 'media' | 'profile' | 'attachment' | 'skills' | 'gallery' | 'blog' | 'messages' | 'documents' | 'settings'
   >('overview');
 
   const [formData, setFormData] = useState<PortfolioData>(data);
@@ -401,6 +402,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           <nav className="p-4 space-y-1 text-xs font-semibold">
             {[
               { id: 'overview', label: 'Dashboard Overview', icon: Layers },
+              { id: 'media', label: 'Cloud Image Vault & Sync', icon: ImageIcon },
               { id: 'profile', label: 'Profile & Academic Bio', icon: User },
               { id: 'attachment', label: 'Teaching Practice & WASH', icon: Building2 },
               { id: 'skills', label: 'Skills & Competencies', icon: Sparkles },
@@ -509,6 +511,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 />
               </div>
             </div>
+          )}
+
+          {/* TAB: CLOUD IMAGE VAULT & SYNC */}
+          {activeTab === 'media' && (
+            <MediaManagerDashboard
+              adminToken={authUser.token}
+              portfolioData={formData}
+              onUpdatePortfolio={(newData) => {
+                setFormData(newData);
+                onUpdateData(newData);
+              }}
+              onSaveSection={handleSaveSection}
+            />
           )}
 
           {/* TAB 1: OVERVIEW */}

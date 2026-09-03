@@ -9,6 +9,7 @@ import {
   Bookmark 
 } from 'lucide-react';
 import { BlogPost } from '../types';
+import { SafeImage } from './SafeImage';
 
 interface BlogSectionProps {
   blog: BlogPost[];
@@ -99,11 +100,10 @@ export const BlogSection: React.FC<BlogSectionProps> = ({
               <div>
                 {post.imageUrl && (
                   <div className="aspect-[16/9] w-full overflow-hidden bg-slate-100 dark:bg-zinc-800">
-                    <img
+                    <SafeImage
                       src={post.imageUrl}
                       alt={post.title}
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                      referrerPolicy="no-referrer"
                       loading="lazy"
                     />
                   </div>

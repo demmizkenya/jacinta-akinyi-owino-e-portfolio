@@ -236,4 +236,44 @@ export const subscribePortfolioFromFirestore = (onUpdate: (data: any) => void): 
   }
 };
 
+/**
+ * Persist media library catalog directly to Firestore document 'portfolio/media'
+ */
+export const syncMediaToFirestore = async (mediaItems: any[]): Promise<boolean> => {
+  try {
+    const { db: firestore } = initializeFirebaseApp();
+    if (!firestore) return false;
+    const docRef = doc(firestore, 'portfolio', 'media');
+    await setDoc(docRef, {
+      items: mediaItems,
+      totalCount: mediaItems.length,
+      _lastUpdated: new Date().toISOString(),
+    }, { merge: true });
+    console.log('[Firestore]: Media catalog permanently synchronized to cloud Firestore.');
+    return true;
+  } catch (err: any) {
+    console.warn('[Firestore Media Sync Warning]:', err?.message || err);
+    return false;
+  }
+};
+
+/**
+ * Fetch media catalog from Firestore
+ */
+export const fetchMediaFromFirestore = async (): Promise<any[] | null> => {
+  try {
+    const { db: firestore } = initializeFirebaseApp();
+    if (!firestore) return null;
+    const docRef = doc(firestore, 'portfolio', 'media');
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      return snap.data()?.items || [];
+    }
+    return null;
+  } catch (err) {
+    console.warn('[Firestore Media Fetch Warning]:', err);
+    return null;
+  }
+};
+
 export { app, db, auth, storage };

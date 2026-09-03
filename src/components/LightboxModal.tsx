@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Calendar, Layers, ExternalLink, Play } from 'lucide-react';
 import { GalleryItem } from '../types';
+import { SafeImage } from './SafeImage';
 
 interface LightboxModalProps {
   item: GalleryItem | null;
@@ -52,11 +53,10 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({ item, onClose }) =
               Your browser does not support the video tag.
             </video>
           ) : (
-            <img
+            <SafeImage
               src={item.url}
               alt={item.title}
               className="max-h-full max-w-full object-contain"
-              referrerPolicy="no-referrer"
             />
           )}
         </div>

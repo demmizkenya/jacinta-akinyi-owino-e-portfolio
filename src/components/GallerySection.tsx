@@ -7,6 +7,7 @@ import {
   Maximize2
 } from 'lucide-react';
 import { GalleryItem } from '../types';
+import { SafeImage } from './SafeImage';
 
 interface GallerySectionProps {
   gallery: GalleryItem[];
@@ -91,11 +92,10 @@ export const GallerySection: React.FC<GallerySectionProps> = ({
                 >
                   {/* Media Container */}
                   <div className="relative aspect-[4/3] bg-slate-100 dark:bg-zinc-800 overflow-hidden">
-                    <img
+                    <SafeImage
                       src={mediaUrl}
                       alt={item.title}
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      referrerPolicy="no-referrer"
                       loading="lazy"
                     />
 

@@ -433,14 +433,16 @@
       "seoKeywords": "Jacinta Akinyi Owino, Maseno University, Bachelor of Education, ECDE, Bar Ogwal Primary, Teaching Practice, East Kisumu, Kenya Education, CBC, Early Childhood",
       "firebaseSyncEnabled": false
     },
-    "visitorCount": 1428
+    "visitorCount": 1428,
+    "_lastUpdated": "2026-09-03T13:55:37.834Z",
+    "_version": 2
   },
   "adminUser": {
     "email": "jecinterowino88@gmail.com",
     "name": "Jacinta Akinyi Owino",
     "role": "admin",
-    "passwordHash": "cea03f809a6f394f4d757442ebe8037458c6e389f307a8803b3426bf1f4f698d41a5962aa2b2920c83f5e52c9aff6627563b9a3c2487e8e42512b3e064a3fa02",
-    "passwordSalt": "f4f23e39194a718cb50ef582d4a743db"
+    "passwordHash": "d21f33dfc8df691a0fcf61fdfdae1d62efb90d380660d9101a335b2b8ae5cb50b7a72d5c2e5124f8df216e93da0abcd749c4db477f265cb2555d3d088e74f11c",
+    "passwordSalt": "bbf6f8f1f6d38aea05959aad490bf297"
   },
   "messages": [
     {
@@ -452,5 +454,6 @@
       "date": "2026-09-02T20:16:05.895Z",
       "isRead": false
     }
-  ]
+  ],
+  "media": []
 }

@@ -186,3 +186,37 @@ export interface AuthUser {
   role: 'admin';
   token: string;
 }
+
+export interface MediaItem {
+  id: string;
+  filename: string;
+  url: string;
+  permanentUrl: string;
+  size: number;
+  mimeType: string;
+  width?: number;
+  height?: number;
+  date: string;
+  storageProvider: 'server-permanent' | 'firebase-storage' | 'cloud-storage';
+  checksum?: string;
+  status: 'active' | 'synced' | 'verified';
+  associatedSection?: 'profile' | 'gallery' | 'blog' | 'testimonial' | 'document' | 'general';
+}
+
+export interface StorageIntegrityReport {
+  totalMediaCount: number;
+  verifiedCount: number;
+  missingCount: number;
+  storageLocation: string;
+  cloudSyncStatus: 'synced' | 'local_only' | 'pending';
+  lastChecked: string;
+  items: Array<{
+    id: string;
+    filename: string;
+    url: string;
+    existsOnDisk: boolean;
+    size: number;
+    associatedWith: string;
+    status: 'healthy' | 'missing' | 'orphaned';
+  }>;
+}

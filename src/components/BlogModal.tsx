@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Calendar, Clock, ArrowLeft } from 'lucide-react';
 import { BlogPost } from '../types';
+import { SafeImage } from './SafeImage';
 
 interface BlogModalProps {
   post: BlogPost | null;
@@ -40,11 +41,10 @@ export const BlogModal: React.FC<BlogModalProps> = ({ post, onClose }) => {
         {/* Post Image Header (if exists) */}
         {post.imageUrl && (
           <div className="w-full h-64 sm:h-80 overflow-hidden bg-slate-100 dark:bg-zinc-800">
-            <img
+            <SafeImage
               src={post.imageUrl}
               alt={post.title}
               className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
             />
           </div>
         )}

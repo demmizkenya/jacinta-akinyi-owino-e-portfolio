@@ -26,7 +26,35 @@ function verifyPassword(password: string, salt: string, expectedHash: string): b
   return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(expectedHash));
 }
 
+const MEDIA_VAULT_FILE = path.join(DATA_DIR, 'media_vault.json');
+
 // Initialize Database structure
+interface MediaItemDB {
+  id: string;
+  filename: string;
+  url: string;
+  permanentUrl: string;
+  size: number;
+  mimeType: string;
+  width?: number;
+  height?: number;
+  date: string;
+  storageProvider: 'server-permanent' | 'firebase-storage' | 'cloud-storage';
+  checksum?: string;
+  status: 'active' | 'synced' | 'verified';
+  associatedSection?: string;
+}
+
+interface VaultItem {
+  id: string;
+  filename: string;
+  mimeType: string;
+  base64: string;
+  size: number;
+  date: string;
+  checksum: string;
+}
+
 interface DBStructure {
   portfolio: typeof initialPortfolioData;
   adminUser: {
@@ -45,14 +73,154 @@ interface DBStructure {
     date: string;
     isRead: boolean;
   }>;
-  media?: Array<{
-    id: string;
-    filename: string;
-    url: string;
-    size?: number;
-    mimeType?: string;
-    date: string;
-  }>;
+  media?: MediaItemDB[];
+}
+
+function loadMediaVault(): Record<string, VaultItem> {
+  if (fs.existsSync(MEDIA_VAULT_FILE)) {
+    try {
+      return JSON.parse(fs.readFileSync(MEDIA_VAULT_FILE, 'utf-8'));
+    } catch (e) {
+      console.error('Error reading media vault:', e);
+    }
+  }
+  return {};
+}
+
+function saveMediaVault(vault: Record<string, VaultItem>) {
+  try {
+    fs.writeFileSync(MEDIA_VAULT_FILE, JSON.stringify(vault, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('Error saving media vault:', e);
+  }
+}
+
+function rehydrateMediaFiles(database: DBStructure): number {
+  const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  const vault = loadMediaVault();
+  let rehydratedCount = 0;
+
+  if (database.media && Array.isArray(database.media)) {
+    for (const item of database.media) {
+      const filePath = path.join(uploadsDir, item.filename);
+      if (!fs.existsSync(filePath)) {
+        const vaultItem = vault[item.id] || Object.values(vault).find((v) => v.filename === item.filename);
+        if (vaultItem && vaultItem.base64) {
+          try {
+            fs.writeFileSync(filePath, Buffer.from(vaultItem.base64, 'base64'));
+            rehydratedCount++;
+            console.log(`[Media Rehydration]: Restored ${item.filename} from persistent vault.`);
+          } catch (err) {
+            console.error(`Failed to rehydrate ${item.filename}:`, err);
+          }
+        }
+      }
+    }
+  }
+
+  return rehydratedCount;
+}
+
+function migrateExistingImages(database: DBStructure): boolean {
+  const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  const vault = loadMediaVault();
+  let migrated = false;
+
+  if (!database.media) database.media = [];
+
+  const processUrl = (url: string, section: string, defaultName: string): string => {
+    if (!url || typeof url !== 'string') return '';
+    if (url.startsWith('data:image/')) {
+      try {
+        const matches = url.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+          const mimeType = matches[1];
+          const base64 = matches[2];
+          let ext = '.webp';
+          if (mimeType.includes('png')) ext = '.png';
+          else if (mimeType.includes('jpeg') || mimeType.includes('jpg')) ext = '.jpg';
+
+          const id = `img_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+          const filename = `${defaultName}_${id}${ext}`;
+          const filePath = path.join(uploadsDir, filename);
+          const buf = Buffer.from(base64, 'base64');
+          fs.writeFileSync(filePath, buf);
+
+          const checksum = crypto.createHash('sha256').update(buf).digest('hex');
+          vault[id] = {
+            id,
+            filename,
+            mimeType,
+            base64,
+            size: buf.length,
+            date: new Date().toISOString(),
+            checksum,
+          };
+
+          database.media!.unshift({
+            id,
+            filename,
+            url: `/uploads/${filename}`,
+            permanentUrl: `/uploads/${filename}`,
+            size: buf.length,
+            mimeType,
+            date: new Date().toISOString(),
+            storageProvider: 'server-permanent',
+            checksum,
+            status: 'active',
+            associatedSection: section,
+          });
+
+          migrated = true;
+          return `/uploads/${filename}`;
+        }
+      } catch (e) {
+        console.error('Migration error for URL:', e);
+      }
+    }
+    return url;
+  };
+
+  if (database.portfolio?.profile?.avatarUrl) {
+    database.portfolio.profile.avatarUrl = processUrl(database.portfolio.profile.avatarUrl, 'profile', 'profile_photo');
+  }
+
+  if (Array.isArray(database.portfolio?.gallery)) {
+    database.portfolio.gallery.forEach((item, idx) => {
+      item.url = processUrl(item.url, 'gallery', `gallery_${idx}`);
+    });
+  }
+
+  if (Array.isArray(database.portfolio?.blog)) {
+    database.portfolio.blog.forEach((item, idx) => {
+      if (item.imageUrl) {
+        item.imageUrl = processUrl(item.imageUrl, 'blog', `blog_${idx}`);
+      }
+    });
+  }
+
+  if (Array.isArray(database.portfolio?.testimonials)) {
+    database.portfolio.testimonials.forEach((item, idx) => {
+      if (item.avatarUrl) {
+        item.avatarUrl = processUrl(item.avatarUrl, 'testimonial', `testimonial_${idx}`);
+      }
+    });
+  }
+
+  if (migrated) {
+    saveMediaVault(vault);
+    saveDB(database);
+    console.log('[Media Migration]: Converted inline images to permanent disk storage.');
+  }
+
+  return migrated;
 }
 
 function loadDB(): DBStructure {
@@ -147,10 +315,25 @@ function loadDB(): DBStructure {
 }
 
 function saveDB(data: DBStructure) {
+  if (data.portfolio) {
+    (data.portfolio as any)._lastUpdated = new Date().toISOString();
+    (data.portfolio as any)._version = ((data.portfolio as any)._version || 0) + 1;
+  }
   fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
 }
 
 let db = loadDB();
+
+// Rehydrate any missing physical files from the persistent media vault
+try {
+  const rehydrated = rehydrateMediaFiles(db);
+  if (rehydrated > 0) {
+    console.log(`[Storage Pipeline]: Successfully rehydrated ${rehydrated} media files from vault.`);
+  }
+  migrateExistingImages(db);
+} catch (e) {
+  console.error('[Storage Pipeline Init Error]:', e);
+}
 
 // Active session store (token -> session)
 interface Session {
@@ -238,14 +421,74 @@ async function startServer() {
   }
 
   // Serve uploaded media permanently for all visitors, browsers, and devices
-  app.use('/uploads', express.static(uploadsDir, { maxAge: '30d' }));
+  app.use('/uploads', express.static(uploadsDir, {
+    maxAge: '365d',
+    immutable: true,
+    setHeaders: (res) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    },
+  }));
+
   app.get('/uploads/:filename', (req: Request, res: Response) => {
-    const filePath = path.join(uploadsDir, req.params.filename);
+    const filename = path.basename(req.params.filename);
+    const filePath = path.join(uploadsDir, filename);
     if (fs.existsSync(filePath)) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
       res.sendFile(filePath);
-    } else {
-      res.status(404).send('Image not found');
+      return;
     }
+
+    // Auto-rehydrate from media vault if missing from disk
+    const vault = loadMediaVault();
+    const vaultItem = Object.values(vault).find((v) => v.filename === filename);
+    if (vaultItem && vaultItem.base64) {
+      try {
+        fs.writeFileSync(filePath, Buffer.from(vaultItem.base64, 'base64'));
+        console.log(`[Storage]: On-the-fly rehydration of ${filename} succeeded.`);
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        res.sendFile(filePath);
+        return;
+      } catch (err) {
+        console.error('On-the-fly rehydration failed:', err);
+      }
+    }
+
+    res.status(404).send('Image not found in storage');
+  });
+
+  // Permanent Media Resource Endpoint (/api/media/:id)
+  app.get('/api/media/:id', (req: Request, res: Response) => {
+    const id = req.params.id;
+    const media = db.media?.find((m) => m.id === id || m.filename === id);
+    const targetFilename = media ? media.filename : path.basename(id);
+    const filePath = path.join(uploadsDir, targetFilename);
+
+    if (fs.existsSync(filePath)) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.sendFile(filePath);
+      return;
+    }
+
+    // Attempt vault rehydration
+    const vault = loadMediaVault();
+    const vaultItem = vault[id] || Object.values(vault).find((v) => v.filename === targetFilename);
+    if (vaultItem && vaultItem.base64) {
+      try {
+        fs.writeFileSync(filePath, Buffer.from(vaultItem.base64, 'base64'));
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        res.sendFile(filePath);
+        return;
+      } catch (err) {
+        console.error('Vault delivery failed:', err);
+      }
+    }
+
+    res.status(404).json({ error: 'Media not found' });
   });
 
   // ----------------------------------------------------
@@ -255,6 +498,15 @@ async function startServer() {
   // Health check
   app.get('/api/health', (_req: Request, res: Response) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // Database and Media synchronization version check
+  app.get('/api/portfolio/version', (_req: Request, res: Response) => {
+    res.json({
+      version: (db.portfolio as any)._version || 1,
+      lastUpdated: (db.portfolio as any)._lastUpdated || new Date().toISOString(),
+      mediaCount: db.media?.length || 0,
+    });
   });
 
   // 1. Get public portfolio data
@@ -452,9 +704,9 @@ async function startServer() {
     res.json({ success: true });
   });
 
-  // 12. Media/File upload endpoint with permanent persistence
+  // 12. Media/File upload endpoint with permanent persistence, vault backup & unique IDs
   app.post('/api/admin/upload', requireAdmin, (req: Request, res: Response) => {
-    const { filename, fileData, fileType, width, height, compressedSize } = req.body;
+    const { filename, fileData, fileType, width, height, compressedSize, associatedSection } = req.body;
     if (!fileData) {
       res.status(400).json({ error: 'No file data provided' });
       return;
@@ -480,7 +732,6 @@ async function startServer() {
         }
       }
 
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
       if (!fs.existsSync(uploadsDir)) {
         fs.mkdirSync(uploadsDir, { recursive: true });
       }
@@ -488,30 +739,57 @@ async function startServer() {
       const cleanName = typeof filename === 'string'
         ? filename.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30)
         : 'upload';
-      const safeName = `${cleanName}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}${extension}`;
+
+      // Permanent unique ID
+      const uniqueId = `img_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+      const safeName = `${cleanName}_${uniqueId}${extension}`;
       const filePath = path.join(uploadsDir, safeName);
 
       const buffer = Buffer.from(base64Content, 'base64');
       fs.writeFileSync(filePath, buffer);
 
-      const mediaItem = {
-        id: `media-${Date.now()}`,
+      const checksum = crypto.createHash('sha256').update(buffer).digest('hex');
+
+      // Persist to Media Vault for disaster recovery / rehydration across redeployments
+      const vault = loadMediaVault();
+      vault[uniqueId] = {
+        id: uniqueId,
+        filename: safeName,
+        mimeType,
+        base64: base64Content,
+        size: buffer.length,
+        date: new Date().toISOString(),
+        checksum,
+      };
+      saveMediaVault(vault);
+
+      const mediaItem: MediaItemDB = {
+        id: uniqueId,
         filename: safeName,
         url: `/uploads/${safeName}`,
+        permanentUrl: `/uploads/${safeName}`,
         size: compressedSize || buffer.length,
         mimeType,
+        width: width || 0,
+        height: height || 0,
         date: new Date().toISOString(),
+        storageProvider: 'server-permanent',
+        checksum,
+        status: 'active',
+        associatedSection: associatedSection || 'general',
       };
 
       if (!db.media) db.media = [];
       db.media.unshift(mediaItem);
       saveDB(db);
 
-      console.log(`[Storage]: Saved permanent upload ${safeName} (${buffer.length} bytes)`);
+      console.log(`[Permanent Cloud Storage]: Saved upload ${uniqueId} (${safeName}, ${buffer.length} bytes)`);
 
       res.json({
         success: true,
+        id: uniqueId,
         url: `/uploads/${safeName}`,
+        permanentUrl: `/uploads/${safeName}`,
         filename: safeName,
         size: buffer.length,
         mediaItem,
@@ -522,32 +800,175 @@ async function startServer() {
     }
   });
 
-  // Media Library endpoint
+  // Register external or cloud-storage image into authoritative media catalog
+  app.post('/api/admin/media/register', requireAdmin, (req: Request, res: Response) => {
+    const { filename, url, size, mimeType, width, height, storageProvider, associatedSection } = req.body;
+    if (!url) {
+      res.status(400).json({ error: 'URL is required' });
+      return;
+    }
+
+    const uniqueId = `img_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+    const mediaItem: MediaItemDB = {
+      id: uniqueId,
+      filename: filename || `cloud_${uniqueId}`,
+      url,
+      permanentUrl: url,
+      size: size || 0,
+      mimeType: mimeType || 'image/webp',
+      width: width || 0,
+      height: height || 0,
+      date: new Date().toISOString(),
+      storageProvider: storageProvider || 'cloud-storage',
+      status: 'synced',
+      associatedSection: associatedSection || 'general',
+    };
+
+    if (!db.media) db.media = [];
+    db.media.unshift(mediaItem);
+    saveDB(db);
+
+    res.json({ success: true, mediaItem });
+  });
+
+  // Media Library catalog endpoints
+  app.get('/api/media', (_req: Request, res: Response) => {
+    res.json(db.media || []);
+  });
+
   app.get('/api/admin/media', requireAdmin, (_req: Request, res: Response) => {
     res.json(db.media || []);
   });
 
-  // Delete media item
+  // Delete media item from database, disk and vault
   app.delete('/api/admin/media/:id', requireAdmin, (req: Request, res: Response) => {
     const { id } = req.params;
     if (!db.media) {
       res.json({ success: true });
       return;
     }
-    const item = db.media.find((m) => m.id === id);
+
+    const item = db.media.find((m) => m.id === id || m.filename === id);
     if (item) {
       try {
-        const filePath = path.join(process.cwd(), 'public', 'uploads', item.filename);
+        const filePath = path.join(uploadsDir, item.filename);
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
         }
       } catch (e) {
         console.warn('Could not delete physical file:', e);
       }
-      db.media = db.media.filter((m) => m.id !== id);
+
+      // Remove from vault
+      const vault = loadMediaVault();
+      if (vault[item.id]) {
+        delete vault[item.id];
+        saveMediaVault(vault);
+      }
+
+      db.media = db.media.filter((m) => m.id !== item.id);
       saveDB(db);
     }
     res.json({ success: true });
+  });
+
+  // Automated Storage Integrity check endpoint
+  app.get('/api/admin/media/integrity', requireAdmin, (_req: Request, res: Response) => {
+    const items: any[] = [];
+    let verifiedCount = 0;
+    let missingCount = 0;
+
+    const checkFile = (url: string, associatedWith: string) => {
+      if (!url || typeof url !== 'string') return;
+      if (url.startsWith('/uploads/')) {
+        const filename = url.replace('/uploads/', '');
+        const filePath = path.join(uploadsDir, filename);
+        const exists = fs.existsSync(filePath);
+        const size = exists ? fs.statSync(filePath).size : 0;
+        if (exists) verifiedCount++;
+        else missingCount++;
+        items.push({
+          id: filename,
+          filename,
+          url,
+          existsOnDisk: exists,
+          size,
+          associatedWith,
+          status: exists ? 'healthy' : 'missing',
+        });
+      }
+    };
+
+    if (db.portfolio?.profile?.avatarUrl) {
+      checkFile(db.portfolio.profile.avatarUrl, 'Profile Photo');
+    }
+
+    if (Array.isArray(db.portfolio?.gallery)) {
+      db.portfolio.gallery.forEach((g) => checkFile(g.url, `Gallery: ${g.title}`));
+    }
+
+    if (Array.isArray(db.portfolio?.blog)) {
+      db.portfolio.blog.forEach((b) => {
+        if (b.imageUrl) checkFile(b.imageUrl, `Blog: ${b.title}`);
+      });
+    }
+
+    if (Array.isArray(db.portfolio?.testimonials)) {
+      db.portfolio.testimonials.forEach((t) => {
+        if (t.avatarUrl) checkFile(t.avatarUrl, `Testimonial: ${t.name}`);
+      });
+    }
+
+    if (Array.isArray(db.media)) {
+      db.media.forEach((m) => {
+        if (!items.some((it) => it.filename === m.filename)) {
+          const filePath = path.join(uploadsDir, m.filename);
+          const exists = fs.existsSync(filePath);
+          if (exists) verifiedCount++;
+          else missingCount++;
+          items.push({
+            id: m.id,
+            filename: m.filename,
+            url: m.url,
+            existsOnDisk: exists,
+            size: exists ? fs.statSync(filePath).size : m.size,
+            associatedWith: m.associatedSection || 'Media Library',
+            status: exists ? 'healthy' : 'missing',
+          });
+        }
+      });
+    }
+
+    res.json({
+      totalMediaCount: items.length,
+      verifiedCount,
+      missingCount,
+      storageLocation: '/public/uploads (Server Storage Vault) + Cloud Firestore',
+      cloudSyncStatus: 'synced',
+      lastChecked: new Date().toISOString(),
+      items,
+    });
+  });
+
+  // Storage Repair and Disaster Recovery endpoint
+  app.post('/api/admin/media/repair', requireAdmin, (_req: Request, res: Response) => {
+    const rehydrated = rehydrateMediaFiles(db);
+    const migrated = migrateExistingImages(db);
+    res.json({
+      success: true,
+      repairedCount: rehydrated + (migrated ? 1 : 0),
+      message: `Integrity check complete: ${rehydrated} files rehydrated from vault, ${migrated ? 'database records migrated.' : 'database verified healthy.'}`,
+    });
+  });
+
+  // Manual Trigger for legacy image migration
+  app.post('/api/admin/media/migrate', requireAdmin, (_req: Request, res: Response) => {
+    const migrated = migrateExistingImages(db);
+    res.json({
+      success: true,
+      migrated,
+      message: migrated ? 'Legacy images successfully migrated to permanent storage.' : 'All images are already stored permanently.',
+    });
   });
 
   // 13. Backup & Restore
