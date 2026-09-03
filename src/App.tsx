@@ -25,9 +25,22 @@ import { SearchModal } from './components/SearchModal';
 import { LoginModal } from './components/LoginModal';
 import { AdminPortal } from './components/AdminPortal';
 import { FloatingWhatsApp } from './components/FloatingWhatsApp';
+import {
+  syncPortfolioToFirestore,
+  fetchPortfolioFromFirestore,
+  subscribePortfolioFromFirestore,
+} from './lib/firebase';
 
 export default function App() {
-  const [data, setData] = useState<PortfolioData>(initialPortfolioData);
+  const [data, setData] = useState<PortfolioData>(() => {
+    const cached = localStorage.getItem('jacinta_portfolio_data');
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch {}
+    }
+    return initialPortfolioData;
+  });
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [visitorCount, setVisitorCount] = useState<number>(1428);
 
@@ -53,9 +66,9 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
 
-    // Fetch portfolio data from server or local storage
+    // Fetch portfolio data from server, Firestore, or local storage
     const fetchPortfolio = async () => {
-      // 1. Check local storage cache first
+      // 1. Check local storage cache first for instant load
       const cached = localStorage.getItem('jacinta_portfolio_data');
       if (cached) {
         try {
@@ -81,7 +94,27 @@ export default function App() {
       } catch (err) {
         console.warn('Backend API unavailable. Utilizing local persisted portfolio data.');
       }
+
+      // 3. Check Firestore for latest documents
+      try {
+        const cloudData = await fetchPortfolioFromFirestore();
+        if (cloudData) {
+          console.log('[App]: Successfully retrieved portfolio data from Firestore cloud database');
+          setData((prev) => ({ ...prev, ...cloudData }));
+          localStorage.setItem('jacinta_portfolio_data', JSON.stringify(cloudData));
+        }
+      } catch (fbErr) {
+        console.warn('[App]: Firestore cloud fetch skipped:', fbErr);
+      }
     };
+
+    // Listen to real-time changes from Firestore so any image upload or edit syncs to all visitors instantly
+    const unsubscribeFirestore = subscribePortfolioFromFirestore((cloudData) => {
+      if (cloudData) {
+        setData((prev) => ({ ...prev, ...cloudData }));
+        localStorage.setItem('jacinta_portfolio_data', JSON.stringify(cloudData));
+      }
+    });
 
     // Increment visitor counter on server
     const incrementVisitor = async () => {
@@ -129,7 +162,35 @@ export default function App() {
     fetchPortfolio();
     incrementVisitor();
     verifyToken();
+
+    return () => {
+      if (unsubscribeFirestore) unsubscribeFirestore();
+    };
   }, []);
+
+  // Sync portfolio updates to local storage, backend server, and Firestore in real-time
+  const handleUpdateData = (newData: PortfolioData) => {
+    setData(newData);
+    localStorage.setItem('jacinta_portfolio_data', JSON.stringify(newData));
+
+    // Permanent Cloud Database Sync (Firestore)
+    syncPortfolioToFirestore(newData).catch((e) => {
+      console.warn('[Firestore Sync Warning]:', e);
+    });
+
+    // Backend Server Database Sync
+    const token = localStorage.getItem('jacinta_portfolio_admin_token') || '';
+    fetch('/api/portfolio', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(newData),
+    }).catch((e) => {
+      console.warn('[Server Sync Warning]:', e);
+    });
+  };
 
   // Theme Toggle Handler
   const toggleTheme = () => {
@@ -271,7 +332,7 @@ export default function App() {
           isOpen={isAdminPortalOpen}
           onClose={() => setIsAdminPortalOpen(false)}
           data={data}
-          onUpdateData={(newData) => setData(newData)}
+          onUpdateData={handleUpdateData}
           authUser={authUser}
           onLogout={handleLogout}
         />

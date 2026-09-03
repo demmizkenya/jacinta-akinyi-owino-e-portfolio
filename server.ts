@@ -45,6 +45,14 @@ interface DBStructure {
     date: string;
     isRead: boolean;
   }>;
+  media?: Array<{
+    id: string;
+    filename: string;
+    url: string;
+    size?: number;
+    mimeType?: string;
+    date: string;
+  }>;
 }
 
 function loadDB(): DBStructure {
@@ -244,6 +252,11 @@ async function startServer() {
   // API Routes
   // ----------------------------------------------------
 
+  // Health check
+  app.get('/api/health', (_req: Request, res: Response) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
   // 1. Get public portfolio data
   app.get('/api/portfolio', (_req: Request, res: Response) => {
     res.json(db.portfolio);
@@ -439,9 +452,9 @@ async function startServer() {
     res.json({ success: true });
   });
 
-  // 12. Media/File upload endpoint
+  // 12. Media/File upload endpoint with permanent persistence
   app.post('/api/admin/upload', requireAdmin, (req: Request, res: Response) => {
-    const { filename, fileData, fileType } = req.body;
+    const { filename, fileData, fileType, width, height, compressedSize } = req.body;
     if (!fileData) {
       res.status(400).json({ error: 'No file data provided' });
       return;
@@ -451,17 +464,19 @@ async function startServer() {
       // Validate base64 or data URL
       const isDataUrl = typeof fileData === 'string' && fileData.startsWith('data:');
       let base64Content = fileData;
-      let extension = '.jpg';
+      let extension = '.webp';
+      let mimeType = fileType || 'image/webp';
 
       if (isDataUrl) {
         const matches = fileData.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
         if (matches && matches.length === 3) {
-          const mime = matches[1];
+          mimeType = matches[1];
           base64Content = matches[2];
-          if (mime.includes('png')) extension = '.png';
-          else if (mime.includes('webp')) extension = '.webp';
-          else if (mime.includes('pdf')) extension = '.pdf';
-          else if (mime.includes('mp4')) extension = '.mp4';
+          if (mimeType.includes('png')) extension = '.png';
+          else if (mimeType.includes('jpeg') || mimeType.includes('jpg')) extension = '.jpg';
+          else if (mimeType.includes('webp')) extension = '.webp';
+          else if (mimeType.includes('pdf')) extension = '.pdf';
+          else if (mimeType.includes('mp4')) extension = '.mp4';
         }
       }
 
@@ -470,20 +485,69 @@ async function startServer() {
         fs.mkdirSync(uploadsDir, { recursive: true });
       }
 
-      const safeName = `upload_${Date.now()}_${Math.random().toString(36).substring(2, 7)}${extension}`;
+      const cleanName = typeof filename === 'string'
+        ? filename.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30)
+        : 'upload';
+      const safeName = `${cleanName}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}${extension}`;
       const filePath = path.join(uploadsDir, safeName);
 
-      fs.writeFileSync(filePath, Buffer.from(base64Content, 'base64'));
+      const buffer = Buffer.from(base64Content, 'base64');
+      fs.writeFileSync(filePath, buffer);
+
+      const mediaItem = {
+        id: `media-${Date.now()}`,
+        filename: safeName,
+        url: `/uploads/${safeName}`,
+        size: compressedSize || buffer.length,
+        mimeType,
+        date: new Date().toISOString(),
+      };
+
+      if (!db.media) db.media = [];
+      db.media.unshift(mediaItem);
+      saveDB(db);
+
+      console.log(`[Storage]: Saved permanent upload ${safeName} (${buffer.length} bytes)`);
 
       res.json({
         success: true,
         url: `/uploads/${safeName}`,
         filename: safeName,
+        size: buffer.length,
+        mediaItem,
       });
     } catch (err: any) {
       console.error('File upload error:', err);
-      res.status(500).json({ error: 'Failed to save uploaded file' });
+      res.status(500).json({ error: 'Failed to save uploaded file: ' + (err?.message || String(err)) });
     }
+  });
+
+  // Media Library endpoint
+  app.get('/api/admin/media', requireAdmin, (_req: Request, res: Response) => {
+    res.json(db.media || []);
+  });
+
+  // Delete media item
+  app.delete('/api/admin/media/:id', requireAdmin, (req: Request, res: Response) => {
+    const { id } = req.params;
+    if (!db.media) {
+      res.json({ success: true });
+      return;
+    }
+    const item = db.media.find((m) => m.id === id);
+    if (item) {
+      try {
+        const filePath = path.join(process.cwd(), 'public', 'uploads', item.filename);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (e) {
+        console.warn('Could not delete physical file:', e);
+      }
+      db.media = db.media.filter((m) => m.id !== id);
+      saveDB(db);
+    }
+    res.json({ success: true });
   });
 
   // 13. Backup & Restore

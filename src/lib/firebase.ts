@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getFirestore, Firestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { getFirestore, Firestore, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 export interface FirebaseDiagnostics {
   isConfigured: boolean;
@@ -44,6 +45,7 @@ export const firebaseConfig = {
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
 let auth: Auth | null = null;
+let storage: FirebaseStorage | null = null;
 let initError: string | null = null;
 
 // Determine missing variables
@@ -63,16 +65,22 @@ export const getMissingFirebaseVars = (): string[] => {
 };
 
 // Safe initialization
-export const initializeFirebaseApp = (): { app: FirebaseApp | null; db: Firestore | null; error: string | null } => {
+export const initializeFirebaseApp = (): {
+  app: FirebaseApp | null;
+  db: Firestore | null;
+  storage: FirebaseStorage | null;
+  auth: Auth | null;
+  error: string | null;
+} => {
   if (app && db) {
-    return { app, db, error: null };
+    return { app, db, storage, auth, error: null };
   }
 
   const missing = getMissingFirebaseVars();
   if (missing.length > 0) {
     initError = `Firebase environment variables missing: ${missing.join(', ')}. Set these in your Vercel Project Settings > Environment Variables.`;
     console.info('[Firebase Config Notice]:', initError);
-    return { app: null, db: null, error: initError };
+    return { app: null, db: null, storage: null, auth: null, error: initError };
   }
 
   try {
@@ -83,13 +91,18 @@ export const initializeFirebaseApp = (): { app: FirebaseApp | null; db: Firestor
     }
     db = getFirestore(app);
     auth = getAuth(app);
+    try {
+      storage = getStorage(app);
+    } catch (storageErr) {
+      console.warn('[Firebase Storage Notice]: Storage init deferred:', storageErr);
+    }
     initError = null;
     console.log('[Firebase]: Initialized successfully with projectId:', firebaseConfig.projectId);
-    return { app, db, error: null };
+    return { app, db, storage, auth, error: null };
   } catch (err: any) {
     initError = err?.message || String(err);
     console.error('[Firebase Initialization Error]:', err);
-    return { app: null, db: null, error: initError };
+    return { app: null, db: null, storage: null, auth: null, error: initError };
   }
 };
 
@@ -157,4 +170,70 @@ export const testFirestoreConnection = async (): Promise<{ success: boolean; mes
   }
 };
 
-export { app, db, auth };
+/**
+ * Persist portfolio data directly to Firestore document 'portfolio/data'
+ */
+export const syncPortfolioToFirestore = async (portfolioData: any): Promise<boolean> => {
+  try {
+    const { db: firestore } = initializeFirebaseApp();
+    if (!firestore) return false;
+    const docRef = doc(firestore, 'portfolio', 'data');
+    await setDoc(docRef, {
+      ...portfolioData,
+      _lastUpdated: new Date().toISOString(),
+    }, { merge: true });
+    console.log('[Firestore]: Portfolio state permanently synchronized to cloud Firestore.');
+    return true;
+  } catch (err: any) {
+    console.warn('[Firestore Sync Warning]: Could not write to Firestore:', err?.message || err);
+    return false;
+  }
+};
+
+/**
+ * Fetch portfolio data directly from Firestore
+ */
+export const fetchPortfolioFromFirestore = async (): Promise<any | null> => {
+  try {
+    const { db: firestore } = initializeFirebaseApp();
+    if (!firestore) return null;
+    const docRef = doc(firestore, 'portfolio', 'data');
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      return snap.data();
+    }
+    return null;
+  } catch (err) {
+    console.warn('[Firestore Fetch Warning]:', err);
+    return null;
+  }
+};
+
+/**
+ * Subscribe in real-time to Firestore updates for live synchronization across all visitors
+ */
+export const subscribePortfolioFromFirestore = (onUpdate: (data: any) => void): (() => void) => {
+  try {
+    const { db: firestore } = initializeFirebaseApp();
+    if (!firestore) return () => {};
+    const docRef = doc(firestore, 'portfolio', 'data');
+    const unsubscribe = onSnapshot(
+      docRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          console.log('[Firestore Realtime Sync]: Received live update from Firestore');
+          onUpdate(snapshot.data());
+        }
+      },
+      (error) => {
+        console.warn('[Firestore Realtime Error]:', error);
+      }
+    );
+    return unsubscribe;
+  } catch (err) {
+    console.warn('[Firestore Subscription Warning]:', err);
+    return () => {};
+  }
+};
+
+export { app, db, auth, storage };

@@ -27,9 +27,12 @@ import {
   ArrowLeft,
   Activity,
   Cloud,
-  Server
+  Server,
+  ImageIcon
 } from 'lucide-react';
-import { getFirebaseDiagnostics, testFirestoreConnection, firebaseConfig } from '../lib/firebase';
+import { getFirebaseDiagnostics, testFirestoreConnection, firebaseConfig, syncPortfolioToFirestore } from '../lib/firebase';
+import { uploadPermanentImage, UploadResult } from '../lib/storageService';
+import { validateImageFile } from '../lib/imageOptimizer';
 import { 
   PortfolioData, 
   AuthUser, 
@@ -81,6 +84,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordNotice, setPasswordNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Upload Progress & Optimization State
+  const [uploadState, setUploadState] = useState<{
+    isUploading: boolean;
+    percentage: number;
+    statusText: string;
+  }>({
+    isUploading: false,
+    percentage: 0,
+    statusText: '',
+  });
 
   // Cloud & Firebase Diagnostics
   const [isTestingCloud, setIsTestingCloud] = useState(false);
@@ -176,40 +190,75 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     }
   };
 
-  // Image Upload helper
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, onUrlReceived: (url: string) => void) => {
+  // Resilient Image & Media Upload with automatic optimization and permanent storage
+  const handleFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    onUrlReceived: (url: string) => void,
+    autoSaveSection?: { section: keyof PortfolioData; getUpdatedData: (url: string) => any }
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64Data = reader.result as string;
-      try {
-        const res = await fetch('/api/admin/upload', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${authUser.token}`,
-          },
-          body: JSON.stringify({
-            filename: file.name,
-            fileData: base64Data,
-            fileType: file.type,
-          }),
-        });
-        const d = await res.json();
-        if (res.ok && d.url) {
-          onUrlReceived(d.url);
-          setStatusNotice({ type: 'success', text: 'File uploaded successfully!' });
-          setTimeout(() => setStatusNotice(null), 3000);
-        } else {
-          setStatusNotice({ type: 'error', text: d.error || 'Upload failed' });
+    // Reset target value so the same file name can be re-uploaded if replaced
+    e.target.value = '';
+
+    const validation = validateImageFile(file);
+    if (!validation.isValid) {
+      setStatusNotice({ type: 'error', text: validation.error || 'Invalid image file.' });
+      setTimeout(() => setStatusNotice(null), 5000);
+      return;
+    }
+
+    setUploadState({
+      isUploading: true,
+      percentage: 15,
+      statusText: `Optimizing ${file.name} for high-speed cloud delivery...`,
+    });
+
+    try {
+      const result = await uploadPermanentImage(
+        file,
+        authUser.token,
+        (percentage, status) => {
+          setUploadState({
+            isUploading: true,
+            percentage,
+            statusText: status,
+          });
         }
-      } catch (err) {
-        setStatusNotice({ type: 'error', text: 'Upload error' });
+      );
+
+      setUploadState({
+        isUploading: false,
+        percentage: 100,
+        statusText: 'Upload completed successfully!',
+      });
+
+      onUrlReceived(result.url);
+
+      if (autoSaveSection) {
+        const updatedSectionData = autoSaveSection.getUpdatedData(result.url);
+        await handleSaveSection(autoSaveSection.section, updatedSectionData);
       }
-    };
-    reader.readAsDataURL(file);
+
+      setStatusNotice({
+        type: 'success',
+        text: `Photo permanently uploaded and saved to ${result.storageProvider === 'firebase-storage' ? 'Firebase Cloud Storage' : 'Persistent Storage'}!`,
+      });
+      setTimeout(() => setStatusNotice(null), 4000);
+    } catch (err: any) {
+      console.error('[Upload Error]:', err);
+      setUploadState({
+        isUploading: false,
+        percentage: 0,
+        statusText: '',
+      });
+      setStatusNotice({
+        type: 'error',
+        text: err?.message || 'Failed to upload photo. Please check your network and try again.',
+      });
+      setTimeout(() => setStatusNotice(null), 6000);
+    }
   };
 
   // Mark message as read
@@ -439,6 +488,29 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         {/* Scrollable Content Container */}
         <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-8">
           
+          {/* Real-time Upload Progress & Optimization Banner */}
+          {uploadState.isUploading && (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-[#7A1C6D]/10 via-[#C8A2C8]/15 to-[#7A1C6D]/10 border border-[#7A1C6D]/30 shadow-sm animate-pulse">
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-4 h-4 border-2 border-[#7A1C6D] border-t-transparent rounded-full animate-spin" />
+                  <span className="text-xs font-bold text-[#7A1C6D] dark:text-[#E8B4E0]">
+                    {uploadState.statusText}
+                  </span>
+                </div>
+                <span className="text-xs font-mono font-bold text-[#7A1C6D] dark:text-[#E8B4E0]">
+                  {uploadState.percentage}%
+                </span>
+              </div>
+              <div className="w-full h-2 bg-slate-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-[#7A1C6D] to-[#B352A3] transition-all duration-300 rounded-full"
+                  style={{ width: `${uploadState.percentage}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-8">
@@ -606,20 +678,31 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-[#1C0D25] border border-[#8A0F7D]/40 text-[#8A0F7D] dark:text-[#C8A2C8] text-xs font-bold shadow-sm hover:bg-[#F4ECF6]">
+                    <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#7A1C6D] hover:bg-[#66155B] text-white text-xs font-bold shadow-sm transition-colors">
                       <Upload className="w-3.5 h-3.5" />
-                      <span>Upload New Profile Photo</span>
+                      <span>{uploadState.isUploading ? 'Uploading Photo...' : 'Upload New Profile Photo'}</span>
                       <input
                         type="file"
                         accept="image/*"
+                        disabled={uploadState.isUploading}
                         className="hidden"
                         onChange={(e) =>
-                          handleFileUpload(e, (url) => {
-                            setFormData({
-                              ...formData,
-                              profile: { ...formData.profile, avatarUrl: url },
-                            });
-                          })
+                          handleFileUpload(
+                            e,
+                            (url) => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                profile: { ...prev.profile, avatarUrl: url },
+                              }));
+                            },
+                            {
+                              section: 'profile',
+                              getUpdatedData: (url) => ({
+                                ...formData.profile,
+                                avatarUrl: url,
+                              }),
+                            }
+                          )
                         }
                       />
                     </label>
@@ -1136,30 +1219,54 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <label className="cursor-pointer p-6 rounded-2xl border-2 border-dashed border-[#C8A2C8] hover:border-[#8A0F7D] flex flex-col items-center justify-center bg-white dark:bg-[#1C0D25] transition-colors">
                     <Upload className="w-6 h-6 text-[#8A0F7D] mb-2" />
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Upload Photo from Computer</span>
-                    <span className="text-[11px] text-slate-400">JPG, PNG, WEBP up to 50MB</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      {uploadState.isUploading ? 'Uploading & Optimizing...' : 'Upload Photo from Device'}
+                    </span>
+                    <span className="text-[11px] text-slate-400">JPG, PNG, WEBP — automatically optimized & permanently saved</span>
                     <input
                       type="file"
                       accept="image/*"
+                      disabled={uploadState.isUploading}
                       className="hidden"
-                      onChange={(e) =>
-                        handleFileUpload(e, (url) => {
-                          const newItem: GalleryItem = {
-                            id: `gal-${Date.now()}`,
-                            title: 'New Practicum Evidence Photo',
-                            description: 'Captured during Bar Ogwal Primary teaching practice session.',
-                            type: 'image',
-                            url: url,
-                            category: 'Teaching Practice',
-                            album: 'Field Practice',
-                            date: 'August 2024',
-                          };
-                          setFormData({
-                            ...formData,
-                            gallery: [newItem, ...formData.gallery],
-                          });
-                        })
-                      }
+                      onChange={(e) => {
+                        const defaultTitle = 'Practicum Evidence Photo';
+                        handleFileUpload(
+                          e,
+                          (url) => {
+                            const newItem: GalleryItem = {
+                              id: `gal-${Date.now()}`,
+                              title: defaultTitle,
+                              description: 'Captured during Bar Ogwal Primary teaching practice session.',
+                              type: 'image',
+                              url: url,
+                              category: 'Teaching Practice',
+                              album: 'Field Practice',
+                              date: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+                            };
+                            const updatedGallery = [newItem, ...formData.gallery];
+                            setFormData((prev) => ({
+                              ...prev,
+                              gallery: updatedGallery,
+                            }));
+                          },
+                          {
+                            section: 'gallery',
+                            getUpdatedData: (url) => {
+                              const newItem: GalleryItem = {
+                                id: `gal-${Date.now()}`,
+                                title: defaultTitle,
+                                description: 'Captured during Bar Ogwal Primary teaching practice session.',
+                                type: 'image',
+                                url: url,
+                                category: 'Teaching Practice',
+                                album: 'Field Practice',
+                                date: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+                              };
+                              return [newItem, ...formData.gallery];
+                            },
+                          }
+                        );
+                      }}
                     />
                   </label>
 
@@ -1182,12 +1289,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                           url: url,
                           category: 'Classroom',
                           album: 'Instructional Aids',
-                          date: 'July 2024',
+                          date: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
                         };
+                        const updated = [newItem, ...formData.gallery];
                         setFormData({
                           ...formData,
-                          gallery: [newItem, ...formData.gallery],
+                          gallery: updated,
                         });
+                        handleSaveSection('gallery', updated);
                       }}
                       className="w-full py-2.5 rounded-xl bg-[#FAF7FB] dark:bg-[#251233] text-[#8A0F7D] dark:text-[#C8A2C8] border border-[#8A0F7D]/30 font-bold text-xs hover:bg-[#8A0F7D] hover:text-white transition-all"
                     >
@@ -1227,14 +1336,31 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                       className="w-full text-xs font-bold bg-white dark:bg-[#1C0D25] px-2 py-1 rounded-lg border border-[#C8A2C8]/30"
                     />
 
-                    <div className="flex items-center justify-between text-xs pt-1">
-                      <span className="text-[11px] text-slate-500">{item.album}</span>
-                      <button
-                        onClick={() => {
-                          const updated = formData.gallery.filter((g) => g.id !== item.id);
+                    <div className="flex items-center justify-between text-xs pt-1 gap-2">
+                      <select
+                        value={item.category}
+                        onChange={(e) => {
+                          const updated = [...formData.gallery];
+                          updated[index].category = e.target.value;
                           setFormData({ ...formData, gallery: updated });
                         }}
-                        className="p-1 text-rose-500 hover:bg-rose-50 rounded"
+                        className="text-[11px] bg-white dark:bg-[#1C0D25] border border-[#C8A2C8]/30 rounded px-1.5 py-0.5 text-slate-700 dark:text-slate-200"
+                      >
+                        <option value="Teaching Practice">Teaching Practice</option>
+                        <option value="Classroom">Classroom</option>
+                        <option value="Sanitation & Hygiene">Sanitation & Hygiene</option>
+                        <option value="Maseno Campus">Maseno Campus</option>
+                        <option value="Certificates">Certificates</option>
+                      </select>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Delete "${item.title}" from gallery?`)) {
+                            const updated = formData.gallery.filter((g) => g.id !== item.id);
+                            setFormData({ ...formData, gallery: updated });
+                            handleSaveSection('gallery', updated);
+                          }
+                        }}
+                        className="p-1 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded"
                         title="Delete media"
                       >
                         <Trash2 className="w-4 h-4" />
