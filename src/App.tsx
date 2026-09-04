@@ -11,7 +11,6 @@ import { TeachingPracticeSection } from './components/TeachingPracticeSection';
 import { SkillsSection } from './components/SkillsSection';
 import { GallerySection } from './components/GallerySection';
 import { BlogSection } from './components/BlogSection';
-import { TestimonialsSection } from './components/TestimonialsSection';
 import { TimelineSection } from './components/TimelineSection';
 import { DocumentsSection } from './components/DocumentsSection';
 import { ContactSection } from './components/ContactSection';
@@ -36,7 +35,8 @@ export default function App() {
     const cached = localStorage.getItem('jacinta_portfolio_data');
     if (cached) {
       try {
-        return JSON.parse(cached);
+        const parsed = JSON.parse(cached);
+        return parsed;
       } catch {}
     }
     return initialPortfolioData;
@@ -73,13 +73,15 @@ export default function App() {
         const res = await fetch('/api/portfolio');
         if (res.ok) {
           const fetchedData = await res.json();
-          setData(fetchedData);
-          localStorage.setItem('jacinta_portfolio_data', JSON.stringify(fetchedData));
-          if (fetchedData.visitorCount) {
-            setVisitorCount(fetchedData.visitorCount);
+          if (fetchedData) {
+            setData(fetchedData);
+            localStorage.setItem('jacinta_portfolio_data', JSON.stringify(fetchedData));
+            if (fetchedData.visitorCount) {
+              setVisitorCount(fetchedData.visitorCount);
+            }
+            console.log('[Authoritative Sync]: Retrieved latest portfolio state directly from database.');
+            return;
           }
-          console.log('[Authoritative Sync]: Retrieved latest portfolio state directly from database.');
-          return;
         }
       } catch (err) {
         console.warn('Backend API temporarily unreachable. Checking cloud Firestore...');
@@ -297,10 +299,7 @@ export default function App() {
           onSelectPost={(post) => setSelectedPost(post)}
         />
 
-        {/* 8. Endorsements & Supervisor Testimonials */}
-        <TestimonialsSection testimonials={data.testimonials} />
-
-        {/* 9. Professional Academic Timeline */}
+        {/* 8. Professional Academic Timeline */}
         <TimelineSection timeline={data.timeline} />
 
         {/* 10. Academic Document Repository */}

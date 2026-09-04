@@ -19,7 +19,7 @@ interface TeachingPracticeSectionProps {
 export const TeachingPracticeSection: React.FC<TeachingPracticeSectionProps> = ({
   teachingPractice,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'sanitation' | 'lessons' | 'feedback'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'sanitation' | 'lessons' | 'community'>('overview');
 
   return (
     <section id="teaching-practice" className="py-24 sm:py-28 bg-slate-50/60 dark:bg-[#0C0C0E] border-b border-slate-200/80 dark:border-zinc-800">
@@ -143,9 +143,9 @@ export const TeachingPracticeSection: React.FC<TeachingPracticeSectionProps> = (
             Lessons Taught & Outcomes
           </button>
           <button
-            onClick={() => setActiveTab('feedback')}
+            onClick={() => setActiveTab('community')}
             className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-150 ${
-              activeTab === 'feedback'
+              activeTab === 'community'
                 ? 'bg-[#7A1C6D] text-white shadow-sm'
                 : 'bg-white dark:bg-zinc-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-700'
             }`}
@@ -246,7 +246,7 @@ export const TeachingPracticeSection: React.FC<TeachingPracticeSectionProps> = (
           </div>
         )}
 
-        {activeTab === 'feedback' && (
+        {activeTab === 'community' && (
           <div className="bg-white dark:bg-zinc-900 rounded-xl p-6 sm:p-8 border border-slate-200 dark:border-zinc-800 shadow-sm">
             <h4 className="text-lg font-serif font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
               <Users className="w-5 h-5 text-[#7A1C6D] dark:text-[#D8A0D0]" />

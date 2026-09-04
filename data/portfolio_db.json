@@ -311,35 +311,6 @@
         "imageUrl": ""
       }
     ],
-    "testimonials": [
-      {
-        "id": "test-1",
-        "name": "Mr. Silas Odhiambo",
-        "role": "Head Teacher",
-        "organization": "Bar Ogwal Primary and Junior School, East Kisumu",
-        "quote": "Jacinta Akinyi Owino brought an extraordinary breath of energy and intellectual rigor to our institution. Her passion for the pupils was matched by her dedication to hygiene and school sanitation. Bar Ogwal was privileged to have her on attachment.",
-        "relationship": "Teaching Practice Host Administrator",
-        "avatarUrl": ""
-      },
-      {
-        "id": "test-2",
-        "name": "Dr. Pamela Ouma",
-        "role": "Senior Lecturer in Early Childhood Education",
-        "organization": "School of Education, Maseno University",
-        "quote": "Jacinta is one of Maseno University's brightest lights in ECDE pedagogy. Her grasp of child developmental psychology, combined with her practical creativity in low-cost instructional media, positions her as a future leader in Kenyan education.",
-        "relationship": "Academic Department Mentor & Lecturer",
-        "avatarUrl": ""
-      },
-      {
-        "id": "test-3",
-        "name": "Mrs. Beatrice Achieng'",
-        "role": "Senior Mentor Teacher (PP2 Lead)",
-        "organization": "Bar Ogwal Primary and Junior School",
-        "quote": "Working alongside Jacinta was seamless. She prepares her schemes of work meticulously and manages the young learners with immense warmth, firm boundaries, and boundless creative joy. Any school hiring her will be truly blessed.",
-        "relationship": "Co-Teacher & Practicum Supervisor",
-        "avatarUrl": ""
-      }
-    ],
     "timeline": [
       {
         "id": "time-1",
@@ -433,16 +404,16 @@
       "seoKeywords": "Jacinta Akinyi Owino, Maseno University, Bachelor of Education, ECDE, Bar Ogwal Primary, Teaching Practice, East Kisumu, Kenya Education, CBC, Early Childhood",
       "firebaseSyncEnabled": false
     },
-    "visitorCount": 1428,
-    "_lastUpdated": "2026-09-03T13:55:37.834Z",
-    "_version": 2
+    "visitorCount": 1434,
+    "_lastUpdated": "2026-09-04T08:45:48.214Z",
+    "_version": 8
   },
   "adminUser": {
     "email": "jecinterowino88@gmail.com",
     "name": "Jacinta Akinyi Owino",
     "role": "admin",
-    "passwordHash": "d21f33dfc8df691a0fcf61fdfdae1d62efb90d380660d9101a335b2b8ae5cb50b7a72d5c2e5124f8df216e93da0abcd749c4db477f265cb2555d3d088e74f11c",
-    "passwordSalt": "bbf6f8f1f6d38aea05959aad490bf297"
+    "passwordHash": "bf39af61238ee17dfce18bcc49329b9a0d0babdd992d937b7749c9c1c99948223c9b9697f471a88049a16ac42dd9b232380b2a08311538149dc0489aca22d929",
+    "passwordSalt": "0f564cada9beb9c266399eb2d275df54"
   },
   "messages": [
     {
@@ -455,5 +426,7 @@
       "isRead": false
     }
   ],
-  "media": []
+  "media": [],
+  "version": 2,
+  "lastUpdated": "2026-09-03T14:13:12.414Z"
 }

@@ -91,6 +91,7 @@ export interface GalleryItem {
   description: string;
   type: 'image' | 'video';
   url: string;
+  imageUrl?: string;
   thumbnailUrl?: string;
   category: 'Teaching Practice' | 'Classroom' | 'Sanitation & Hygiene' | 'Community' | 'Maseno Campus' | 'Certificates';
   album: string;
@@ -111,16 +112,6 @@ export interface BlogPost {
   isPublished: boolean;
   scheduledDate?: string;
   imageUrl?: string;
-}
-
-export interface Testimonial {
-  id: string;
-  name: string;
-  role: string;
-  organization: string;
-  quote: string;
-  relationship: string;
-  avatarUrl?: string;
 }
 
 export interface TimelineItem {
@@ -164,6 +155,14 @@ export interface SiteSettings {
   seoDescription: string;
   seoKeywords: string;
   firebaseSyncEnabled?: boolean;
+  customFirebaseConfig?: {
+    apiKey?: string;
+    authDomain?: string;
+    projectId?: string;
+    storageBucket?: string;
+    messagingSenderId?: string;
+    appId?: string;
+  };
 }
 
 export interface PortfolioData {
@@ -173,7 +172,6 @@ export interface PortfolioData {
   skills: Skill[];
   gallery: GalleryItem[];
   blog: BlogPost[];
-  testimonials: Testimonial[];
   timeline: TimelineItem[];
   documents: DocumentItem[];
   siteSettings: SiteSettings;
@@ -200,7 +198,7 @@ export interface MediaItem {
   storageProvider: 'server-permanent' | 'firebase-storage' | 'cloud-storage';
   checksum?: string;
   status: 'active' | 'synced' | 'verified';
-  associatedSection?: 'profile' | 'gallery' | 'blog' | 'testimonial' | 'document' | 'general';
+  associatedSection?: 'profile' | 'gallery' | 'blog' | 'document' | 'general';
 }
 
 export interface StorageIntegrityReport {

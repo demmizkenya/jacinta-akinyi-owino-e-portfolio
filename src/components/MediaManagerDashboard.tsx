@@ -52,7 +52,7 @@ export const MediaManagerDashboard: React.FC<MediaManagerDashboardProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadPercent, setUploadPercent] = useState(0);
   const [uploadStatus, setUploadStatus] = useState('');
-  const [selectedSection, setSelectedSection] = useState<'general' | 'profile' | 'gallery' | 'blog' | 'testimonial'>('general');
+  const [selectedSection, setSelectedSection] = useState<'general' | 'profile' | 'gallery' | 'blog'>('general');
   
   // Integrity & Diagnostic State
   const [integrityReport, setIntegrityReport] = useState<StorageIntegrityReport | null>(null);
@@ -187,7 +187,7 @@ export const MediaManagerDashboard: React.FC<MediaManagerDashboardProps> = ({
       return;
     }
 
-    const success = await deleteMediaItem(id, adminToken);
+    const success = await deleteMediaItem(id, adminToken, filename);
     if (success) {
       showToast('success', `Deleted ${filename} permanently.`);
       setMediaList((prev) => prev.filter((m) => m.id !== id && m.filename !== filename));
@@ -399,7 +399,6 @@ export const MediaManagerDashboard: React.FC<MediaManagerDashboardProps> = ({
               <option value="profile">Profile & Bio</option>
               <option value="gallery">Teaching Practice Gallery</option>
               <option value="blog">Blog Articles</option>
-              <option value="testimonial">Student / Colleague Testimonial</option>
             </select>
           </div>
 
@@ -476,7 +475,6 @@ export const MediaManagerDashboard: React.FC<MediaManagerDashboardProps> = ({
               <option value="profile">Profile</option>
               <option value="gallery">Gallery</option>
               <option value="blog">Blog</option>
-              <option value="testimonial">Testimonial</option>
               <option value="general">General</option>
             </select>
 

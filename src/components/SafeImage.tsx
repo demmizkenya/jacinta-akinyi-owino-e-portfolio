@@ -33,14 +33,27 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [currentSrc, setCurrentSrc] = useState(src);
   const [retryCount, setRetryCount] = useState(0);
+  const imgRef = React.useRef<HTMLImageElement | null>(null);
 
   // Sync src changes from parent
   useEffect(() => {
     setCurrentSrc(src);
     setHasError(false);
-    setIsLoading(true);
     setRetryCount(0);
+    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
+      setIsLoading(false);
+    } else {
+      setIsLoading(true);
+    }
   }, [src]);
+
+  // Check if image is already loaded from browser cache
+  const handleImageRef = (node: HTMLImageElement | null) => {
+    imgRef.current = node;
+    if (node && node.complete && node.naturalWidth > 0) {
+      setIsLoading(false);
+    }
+  };
 
   // If no source is provided or source is empty string
   if (!currentSrc || currentSrc.trim() === '') {
@@ -113,20 +126,18 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   return (
     <div className={`relative overflow-hidden ${className}`}>
       {isLoading && (
-        <div className="absolute inset-0 bg-slate-200/60 dark:bg-zinc-800/60 backdrop-blur-[2px] flex items-center justify-center z-10 animate-pulse">
-          <Loader2 className="w-5 h-5 text-[#7A1C6D] animate-spin opacity-70" />
+        <div className="absolute inset-0 bg-slate-100 dark:bg-zinc-800 flex items-center justify-center z-10 pointer-events-none transition-opacity duration-300">
+          <Loader2 className="w-5 h-5 text-[#7A1C6D] dark:text-[#E8B4E0] animate-spin opacity-60" />
         </div>
       )}
       <img
         {...rest}
+        ref={handleImageRef}
         id={id}
         src={currentSrc}
         alt={alt}
-        className={`w-full h-full object-cover transition-opacity duration-300 ${
-          isLoading ? 'opacity-0' : 'opacity-100'
-        }`}
+        className={`w-full h-full object-cover ${rest.className || ''}`}
         referrerPolicy="no-referrer"
-        loading="lazy"
         onLoad={() => setIsLoading(false)}
         onError={handleImageError}
       />

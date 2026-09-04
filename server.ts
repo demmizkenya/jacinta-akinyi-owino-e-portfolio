@@ -206,12 +206,10 @@ function migrateExistingImages(database: DBStructure): boolean {
     });
   }
 
-  if (Array.isArray(database.portfolio?.testimonials)) {
-    database.portfolio.testimonials.forEach((item, idx) => {
-      if (item.avatarUrl) {
-        item.avatarUrl = processUrl(item.avatarUrl, 'testimonial', `testimonial_${idx}`);
-      }
-    });
+  // Remove legacy testimonials from database if present
+  if ((database.portfolio as any)?.testimonials) {
+    delete (database.portfolio as any).testimonials;
+    migrated = true;
   }
 
   if (migrated) {
@@ -260,48 +258,9 @@ function loadDB(): DBStructure {
     };
   }
 
-  // Sanitize: Permanently remove any legacy default images
-  if (data.portfolio && data.portfolio.profile) {
-    if (data.portfolio.profile.avatarUrl && (
-      data.portfolio.profile.avatarUrl.includes('/src/assets/images') ||
-      data.portfolio.profile.avatarUrl.includes('jacinta_profile_portrait')
-    )) {
-      data.portfolio.profile.avatarUrl = '';
-    }
-  }
-
-  // Clear legacy default gallery items if present
-  if (data.portfolio && Array.isArray(data.portfolio.gallery)) {
-    data.portfolio.gallery = data.portfolio.gallery.filter((item: any) => {
-      if (!item.url) return false;
-      if (item.url.includes('/src/assets/images')) return false;
-      if (item.url.includes('unsplash.com') || item.url.includes('mixkit.co')) return false;
-      return true;
-    });
-  }
-
-  // Clear legacy default blog post images
-  if (data.portfolio && Array.isArray(data.portfolio.blog)) {
-    data.portfolio.blog.forEach((post: any) => {
-      if (post.imageUrl && (
-        post.imageUrl.includes('/src/assets/images') ||
-        post.imageUrl.includes('unsplash.com')
-      )) {
-        post.imageUrl = '';
-      }
-    });
-  }
-
-  // Clear legacy default testimonial avatars
-  if (data.portfolio && Array.isArray(data.portfolio.testimonials)) {
-    data.portfolio.testimonials.forEach((test: any) => {
-      if (test.avatarUrl && (
-        test.avatarUrl.includes('/src/assets/images') ||
-        test.avatarUrl.includes('unsplash.com')
-      )) {
-        test.avatarUrl = '';
-      }
-    });
+  // Remove legacy testimonials if present
+  if (data.portfolio && (data.portfolio as any).testimonials) {
+    delete (data.portfolio as any).testimonials;
   }
 
   // Ensure admin password hash is updated for 3247900
@@ -638,7 +597,6 @@ async function startServer() {
       'skills',
       'gallery',
       'blog',
-      'testimonials',
       'timeline',
       'documents',
       'siteSettings',
@@ -910,12 +868,6 @@ async function startServer() {
     if (Array.isArray(db.portfolio?.blog)) {
       db.portfolio.blog.forEach((b) => {
         if (b.imageUrl) checkFile(b.imageUrl, `Blog: ${b.title}`);
-      });
-    }
-
-    if (Array.isArray(db.portfolio?.testimonials)) {
-      db.portfolio.testimonials.forEach((t) => {
-        if (t.avatarUrl) checkFile(t.avatarUrl, `Testimonial: ${t.name}`);
       });
     }
 

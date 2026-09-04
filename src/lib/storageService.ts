@@ -10,7 +10,7 @@
  * 6. Multi-tier persistence: Cloud Storage + Server Vault + Firestore.
  */
 
-import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { initializeFirebaseApp, syncMediaToFirestore, syncPortfolioToFirestore } from './firebase';
 import { optimizeImage, validateImageFile } from './imageOptimizer';
 import { MediaItem, StorageIntegrityReport } from '../types';
@@ -41,7 +41,7 @@ export async function uploadPermanentImage(
   adminToken?: string,
   onProgress?: UploadProgressCallback,
   maxRetries: number = 3,
-  associatedSection: 'profile' | 'gallery' | 'blog' | 'testimonial' | 'document' | 'general' = 'general'
+  associatedSection: 'profile' | 'gallery' | 'blog' | 'document' | 'general' = 'general'
 ): Promise<UploadResult> {
   // 1. Initial file validation
   const validation = validateImageFile(file);
@@ -272,15 +272,43 @@ export async function fetchMediaCatalog(adminToken?: string): Promise<MediaItem[
 }
 
 /**
- * Delete a media item from permanent storage
+ * Delete a media item from permanent storage (Firebase Storage, backend server, and Firestore)
  */
-export async function deleteMediaItem(id: string, adminToken?: string): Promise<boolean> {
+export async function deleteMediaItem(
+  id: string,
+  adminToken?: string,
+  filename?: string,
+  storageProvider?: string
+): Promise<boolean> {
   try {
+    // 1. If stored in Firebase Cloud Storage, safely delete object from bucket
+    try {
+      const { storage } = initializeFirebaseApp();
+      if (storage && filename) {
+        const itemRef = storageRef(storage, `portfolio_images/${filename}`);
+        await deleteObject(itemRef).catch((e) => {
+          console.info('[Firebase Storage]: deleteObject notice:', e?.message || e);
+        });
+      }
+    } catch (fbErr) {
+      console.warn('[Firebase Storage Delete Notice]:', fbErr);
+    }
+
+    // 2. Delete from server backend
     const token = adminToken || localStorage.getItem('jacinta_portfolio_admin_token') || '';
     const res = await fetch(`/api/admin/media/${encodeURIComponent(id)}`, {
       method: 'DELETE',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
+
+    // 3. Keep Firestore media catalog synchronized
+    try {
+      const updatedCatalog = await fetchMediaCatalog(token);
+      await syncMediaToFirestore(updatedCatalog);
+    } catch (syncErr) {
+      console.warn('[Firestore Media Sync after delete]:', syncErr);
+    }
+
     return res.ok;
   } catch (err) {
     console.error('Failed to delete media item:', err);

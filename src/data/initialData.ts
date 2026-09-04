@@ -319,35 +319,6 @@ This approach invited parents into the learning journey during our consultative 
       imageUrl: ""
     }
   ],
-  testimonials: [
-    {
-      id: "test-1",
-      name: "Mr. Silas Odhiambo",
-      role: "Head Teacher",
-      organization: "Bar Ogwal Primary and Junior School, East Kisumu",
-      quote: "Jacinta Akinyi Owino brought an extraordinary breath of energy and intellectual rigor to our institution. Her passion for the pupils was matched by her dedication to hygiene and school sanitation. Bar Ogwal was privileged to have her on attachment.",
-      relationship: "Teaching Practice Host Administrator",
-      avatarUrl: ""
-    },
-    {
-      id: "test-2",
-      name: "Dr. Pamela Ouma",
-      role: "Senior Lecturer in Early Childhood Education",
-      organization: "School of Education, Maseno University",
-      quote: "Jacinta is one of Maseno University's brightest lights in ECDE pedagogy. Her grasp of child developmental psychology, combined with her practical creativity in low-cost instructional media, positions her as a future leader in Kenyan education.",
-      relationship: "Academic Department Mentor & Lecturer",
-      avatarUrl: ""
-    },
-    {
-      id: "test-3",
-      name: "Mrs. Beatrice Achieng'",
-      role: "Senior Mentor Teacher (PP2 Lead)",
-      organization: "Bar Ogwal Primary and Junior School",
-      quote: "Working alongside Jacinta was seamless. She prepares her schemes of work meticulously and manages the young learners with immense warmth, firm boundaries, and boundless creative joy. Any school hiring her will be truly blessed.",
-      relationship: "Co-Teacher & Practicum Supervisor",
-      avatarUrl: ""
-    }
-  ],
   timeline: [
     {
       id: "time-1",
