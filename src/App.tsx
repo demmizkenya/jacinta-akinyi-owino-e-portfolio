@@ -68,30 +68,29 @@ export default function App() {
 
     // Direct authoritative fetch from database / backend server
     const fetchAuthoritativePortfolio = async () => {
-      // 1. First fetch directly from backend API / database (authoritative source)
+      // 1. Fetch from backend API
       try {
         const res = await fetch('/api/portfolio');
         if (res.ok) {
           const fetchedData = await res.json();
           if (fetchedData) {
-            setData(fetchedData);
+            setData((prev) => ({ ...prev, ...fetchedData }));
             localStorage.setItem('jacinta_portfolio_data', JSON.stringify(fetchedData));
             if (fetchedData.visitorCount) {
               setVisitorCount(fetchedData.visitorCount);
             }
-            console.log('[Authoritative Sync]: Retrieved latest portfolio state directly from database.');
-            return;
+            console.log('[Authoritative Sync]: Retrieved latest portfolio state from server.');
           }
         }
       } catch (err) {
         console.warn('Backend API temporarily unreachable. Checking cloud Firestore...');
       }
 
-      // 2. Check Firestore for latest documents
+      // 2. Also check Firestore cloud database for latest synchronized state
       try {
         const cloudData = await fetchPortfolioFromFirestore();
-        if (cloudData) {
-          console.log('[App]: Retrieved portfolio data from Firestore cloud database');
+        if (cloudData && Object.keys(cloudData).length > 0) {
+          console.log('[App]: Retrieved portfolio data from Firestore cloud database.');
           setData((prev) => ({ ...prev, ...cloudData }));
           localStorage.setItem('jacinta_portfolio_data', JSON.stringify(cloudData));
           return;

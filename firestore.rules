@@ -1,16 +1,16 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Portfolio public content: readable by all, writable only by authenticated admin
+    // Portfolio content and media records: public read for all visitors, write for admin/site updates
     match /portfolio/{document=**} {
       allow read: if true;
-      allow write: if request.auth != null || true; // Configurable per deployment security level
+      allow write: if true;
     }
 
     // Contact messages: anyone can create, admin can read and delete
     match /messages/{messageId} {
       allow create: if true;
-      allow read, update, delete: if request.auth != null || true;
+      allow read, update, delete: if true;
     }
   }
 }

@@ -11,7 +11,7 @@
  */
 
 import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
-import { initializeFirebaseApp, syncMediaToFirestore, syncPortfolioToFirestore } from './firebase';
+import { initializeFirebaseApp, syncMediaToFirestore, syncPortfolioToFirestore, fetchMediaFromFirestore } from './firebase';
 import { optimizeImage, validateImageFile } from './imageOptimizer';
 import { MediaItem, StorageIntegrityReport } from '../types';
 
@@ -49,14 +49,37 @@ export async function uploadPermanentImage(
     throw new Error(validation.error || 'Invalid image file.');
   }
 
-  onProgress?.(10, 'Validating and optimizing image...');
+  onProgress?.(10, 'Preparing and optimizing image for upload...');
 
-  // 2. Client-side optimization (compresses large photos to high-quality lightweight WebP/JPEG)
-  const optimized = await optimizeImage(file, {
-    maxWidth: 1920,
-    maxHeight: 1920,
-    quality: 0.88,
-  });
+  // 2. Client-side optimization with automatic fallback for mobile phone galleries
+  let uploadBlob: Blob = file;
+  let filename = `photo_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_').slice(0, 30)}`;
+  if (!/\.[a-zA-Z0-9]{3,4}$/.test(filename)) {
+    filename += '.jpg';
+  }
+  let contentType = file.type || 'image/jpeg';
+  let width = 1200;
+  let height = 900;
+  let originalSize = file.size;
+  let optimizedSize = file.size;
+  let dataUrlFallback = '';
+
+  try {
+    const optimized = await optimizeImage(file, {
+      maxWidth: 1920,
+      maxHeight: 1920,
+      quality: 0.88,
+    });
+    uploadBlob = optimized.blob;
+    filename = optimized.filename;
+    contentType = optimized.format === 'webp' ? 'image/webp' : 'image/jpeg';
+    width = optimized.width;
+    height = optimized.height;
+    optimizedSize = optimized.optimizedSize;
+    dataUrlFallback = optimized.dataUrl;
+  } catch (optErr) {
+    console.warn('[Image Optimizer]: Using direct file fallback for phone gallery upload:', optErr);
+  }
 
   onProgress?.(30, 'Allocating permanent cloud storage record...');
 
@@ -65,16 +88,16 @@ export async function uploadPermanentImage(
 
   while (attempt <= maxRetries) {
     try {
-      // 3. Attempt Tier 1: Firebase Cloud Storage (if enabled and configured)
+      // 3. Attempt Tier 1: Firebase Cloud Storage
       const { storage, app } = initializeFirebaseApp();
       if (storage && app) {
         try {
           onProgress?.(40, 'Uploading to Firebase Cloud Storage...');
-          const imagePath = `portfolio_images/${optimized.filename}`;
+          const imagePath = `portfolio_images/${filename}`;
           const imageStorageRef = storageRef(storage, imagePath);
 
-          const uploadTask = uploadBytesResumable(imageStorageRef, optimized.blob, {
-            contentType: optimized.format === 'webp' ? 'image/webp' : 'image/jpeg',
+          const uploadTask = uploadBytesResumable(imageStorageRef, uploadBlob, {
+            contentType,
             customMetadata: {
               originalName: file.name,
               uploadedAt: new Date().toISOString(),
@@ -92,7 +115,7 @@ export async function uploadPermanentImage(
                 onProgress?.(40 + percent, `Uploading to Cloud Storage (${40 + percent}%)...`);
               },
               (error) => {
-                console.warn('[Firebase Storage Notice]: Task error, switching to backend persistent storage:', error);
+                console.warn('[Firebase Storage Notice]: Task error:', error);
                 reject(error);
               },
               async () => {
@@ -107,7 +130,7 @@ export async function uploadPermanentImage(
           });
 
           if (downloadUrl) {
-            onProgress?.(85, 'Registering media metadata in cloud database...');
+            onProgress?.(85, 'Registering media metadata in cloud Firestore...');
             
             // Also notify backend server to register media item in DB
             const token = adminToken || localStorage.getItem('jacinta_portfolio_admin_token') || '';
@@ -118,12 +141,12 @@ export async function uploadPermanentImage(
                 ...(token ? { Authorization: `Bearer ${token}` } : {}),
               },
               body: JSON.stringify({
-                filename: optimized.filename,
+                filename,
                 url: downloadUrl,
-                size: optimized.optimizedSize,
-                mimeType: optimized.format === 'webp' ? 'image/webp' : 'image/jpeg',
-                width: optimized.width,
-                height: optimized.height,
+                size: optimizedSize,
+                mimeType: contentType,
+                width,
+                height,
                 storageProvider: 'firebase-storage',
                 associatedSection,
               }),
@@ -134,30 +157,40 @@ export async function uploadPermanentImage(
 
             const mediaItem: MediaItem = {
               id: uniqueId,
-              filename: optimized.filename,
+              filename,
               url: downloadUrl,
               permanentUrl: downloadUrl,
-              size: optimized.optimizedSize,
-              mimeType: optimized.format === 'webp' ? 'image/webp' : 'image/jpeg',
-              width: optimized.width,
-              height: optimized.height,
+              size: optimizedSize,
+              mimeType: contentType,
+              width,
+              height,
               date: new Date().toISOString(),
               storageProvider: 'firebase-storage',
               status: 'synced',
               associatedSection,
             };
 
+            // Register directly in Firestore media catalog
+            try {
+              const existing = (await fetchMediaFromFirestore()) || [];
+              const updatedCatalog = [mediaItem, ...existing.filter((m) => m.id !== uniqueId)];
+              await syncMediaToFirestore(updatedCatalog);
+              console.log('[Firestore]: Media catalog synchronized with new Firebase Storage item.');
+            } catch (fsErr) {
+              console.warn('[Firestore Media Sync]:', fsErr);
+            }
+
             onProgress?.(100, 'Upload complete & synchronized!');
             return {
               id: uniqueId,
               url: downloadUrl,
               permanentUrl: downloadUrl,
-              filename: optimized.filename,
+              filename,
               storageProvider: 'firebase-storage',
-              width: optimized.width,
-              height: optimized.height,
-              fileSize: optimized.optimizedSize,
-              originalSize: optimized.originalSize,
+              width,
+              height,
+              fileSize: optimizedSize,
+              originalSize,
               mediaItem,
             };
           }
@@ -169,6 +202,17 @@ export async function uploadPermanentImage(
       // 4. Attempt Tier 2: Persistent Backend Storage API (/api/admin/upload)
       onProgress?.(55, 'Uploading to permanent server storage...');
 
+      let fileDataPayload = dataUrlFallback;
+      if (!fileDataPayload) {
+        // Convert blob to base64 for server upload
+        fileDataPayload = await new Promise<string>((res, rej) => {
+          const reader = new FileReader();
+          reader.onloadend = () => res(reader.result as string);
+          reader.onerror = rej;
+          reader.readAsDataURL(uploadBlob);
+        });
+      }
+
       const token = adminToken || localStorage.getItem('jacinta_portfolio_admin_token') || '';
       const response = await fetch('/api/admin/upload', {
         method: 'POST',
@@ -177,13 +221,13 @@ export async function uploadPermanentImage(
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          filename: optimized.filename,
-          fileData: optimized.dataUrl,
-          fileType: optimized.format === 'webp' ? 'image/webp' : 'image/jpeg',
-          width: optimized.width,
-          height: optimized.height,
-          originalSize: optimized.originalSize,
-          compressedSize: optimized.optimizedSize,
+          filename,
+          fileData: fileDataPayload,
+          fileType: contentType,
+          width,
+          height,
+          originalSize,
+          compressedSize: optimizedSize,
           associatedSection,
         }),
       });
@@ -202,22 +246,24 @@ export async function uploadPermanentImage(
 
       const mediaItem: MediaItem = resData.mediaItem || {
         id: resData.id || `img_${Date.now()}`,
-        filename: resData.filename || optimized.filename,
+        filename: resData.filename || filename,
         url: resData.url,
         permanentUrl: resData.permanentUrl || resData.url,
-        size: resData.size || optimized.optimizedSize,
-        mimeType: optimized.format === 'webp' ? 'image/webp' : 'image/jpeg',
-        width: optimized.width,
-        height: optimized.height,
+        size: resData.size || optimizedSize,
+        mimeType: contentType,
+        width,
+        height,
         date: new Date().toISOString(),
         storageProvider: 'server-permanent',
         status: 'active',
         associatedSection,
       };
 
-      // Best effort: sync to Firestore if configured
+      // Best effort: sync to Firestore
       try {
-        await syncMediaToFirestore([mediaItem]);
+        const existing = (await fetchMediaFromFirestore()) || [];
+        const updatedCatalog = [mediaItem, ...existing.filter((m) => m.id !== mediaItem.id)];
+        await syncMediaToFirestore(updatedCatalog);
       } catch (cloudErr) {
         console.warn('[Firestore Sync Warning]: Background sync deferred:', cloudErr);
       }
@@ -228,12 +274,12 @@ export async function uploadPermanentImage(
         id: mediaItem.id,
         url: resData.url,
         permanentUrl: resData.permanentUrl || resData.url,
-        filename: resData.filename || optimized.filename,
+        filename: resData.filename || filename,
         storageProvider: 'backend-server',
-        width: optimized.width,
-        height: optimized.height,
-        fileSize: optimized.optimizedSize,
-        originalSize: optimized.originalSize,
+        width,
+        height,
+        fileSize: optimizedSize,
+        originalSize,
         mediaItem,
       };
     } catch (err: any) {
@@ -254,7 +300,7 @@ export async function uploadPermanentImage(
 }
 
 /**
- * Fetch all registered media from authoritative database
+ * Fetch all registered media from authoritative database and Firestore
  */
 export async function fetchMediaCatalog(adminToken?: string): Promise<MediaItem[]> {
   try {
@@ -263,11 +309,22 @@ export async function fetchMediaCatalog(adminToken?: string): Promise<MediaItem[
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (res.ok) {
-      return await res.json();
+      const items = await res.json();
+      if (Array.isArray(items) && items.length > 0) return items;
     }
   } catch (err) {
-    console.error('Failed to fetch media catalog from server:', err);
+    console.warn('Failed to fetch media catalog from server, checking Firestore...', err);
   }
+
+  try {
+    const cloudItems = await fetchMediaFromFirestore();
+    if (cloudItems && cloudItems.length > 0) {
+      return cloudItems;
+    }
+  } catch (fbErr) {
+    console.warn('Firestore media fetch error:', fbErr);
+  }
+
   return [];
 }
 

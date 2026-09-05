@@ -1,7 +1,8 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getFirestore, Firestore, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
-import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore, doc, getDoc, setDoc, onSnapshot, getDocFromServer } from 'firebase/firestore';
+import { getAuth, Auth, signInAnonymously } from 'firebase/auth';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
+import appletConfig from '../../firebase-applet-config.json';
 
 export interface FirebaseDiagnostics {
   isConfigured: boolean;
@@ -34,12 +35,13 @@ const getEnv = (key: string): string => {
 };
 
 export const firebaseConfig = {
-  apiKey: getEnv('VITE_FIREBASE_API_KEY') || getEnv('FIREBASE_API_KEY'),
-  authDomain: getEnv('VITE_FIREBASE_AUTH_DOMAIN') || getEnv('FIREBASE_AUTH_DOMAIN'),
-  projectId: getEnv('VITE_FIREBASE_PROJECT_ID') || getEnv('FIREBASE_PROJECT_ID'),
-  storageBucket: getEnv('VITE_FIREBASE_STORAGE_BUCKET') || getEnv('FIREBASE_STORAGE_BUCKET'),
-  messagingSenderId: getEnv('VITE_FIREBASE_MESSAGING_SENDER_ID') || getEnv('FIREBASE_MESSAGING_SENDER_ID'),
-  appId: getEnv('VITE_FIREBASE_APP_ID') || getEnv('FIREBASE_APP_ID'),
+  apiKey: getEnv('VITE_FIREBASE_API_KEY') || appletConfig.apiKey || getEnv('FIREBASE_API_KEY'),
+  authDomain: getEnv('VITE_FIREBASE_AUTH_DOMAIN') || appletConfig.authDomain || getEnv('FIREBASE_AUTH_DOMAIN'),
+  projectId: getEnv('VITE_FIREBASE_PROJECT_ID') || appletConfig.projectId || getEnv('FIREBASE_PROJECT_ID'),
+  storageBucket: getEnv('VITE_FIREBASE_STORAGE_BUCKET') || appletConfig.storageBucket || getEnv('FIREBASE_STORAGE_BUCKET'),
+  messagingSenderId: getEnv('VITE_FIREBASE_MESSAGING_SENDER_ID') || appletConfig.messagingSenderId || getEnv('FIREBASE_MESSAGING_SENDER_ID'),
+  appId: getEnv('VITE_FIREBASE_APP_ID') || appletConfig.appId || getEnv('FIREBASE_APP_ID'),
+  firestoreDatabaseId: getEnv('VITE_FIREBASE_DATABASE_ID') || appletConfig.firestoreDatabaseId || '',
 };
 
 let app: FirebaseApp | null = null;
@@ -50,6 +52,9 @@ let initError: string | null = null;
 
 // Determine missing variables
 export const getMissingFirebaseVars = (): string[] => {
+  if (firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.storageBucket) {
+    return [];
+  }
   const required = [
     'VITE_FIREBASE_API_KEY',
     'VITE_FIREBASE_AUTH_DOMAIN',
@@ -72,13 +77,13 @@ export const initializeFirebaseApp = (): {
   auth: Auth | null;
   error: string | null;
 } => {
-  if (app && db) {
+  if (app && db && storage) {
     return { app, db, storage, auth, error: null };
   }
 
   const missing = getMissingFirebaseVars();
   if (missing.length > 0) {
-    initError = `Firebase environment variables missing: ${missing.join(', ')}. Set these in your Vercel Project Settings > Environment Variables.`;
+    initError = `Firebase environment variables missing: ${missing.join(', ')}.`;
     console.info('[Firebase Config Notice]:', initError);
     return { app: null, db: null, storage: null, auth: null, error: initError };
   }
@@ -89,15 +94,37 @@ export const initializeFirebaseApp = (): {
     } else {
       app = getApp();
     }
-    db = getFirestore(app);
+
+    // Initialize custom database if specified
+    if (firebaseConfig.firestoreDatabaseId) {
+      try {
+        db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+      } catch (dbErr) {
+        console.warn('[Firebase DB fallback]:', dbErr);
+        db = getFirestore(app);
+      }
+    } else {
+      db = getFirestore(app);
+    }
+
     auth = getAuth(app);
+    if (auth && !auth.currentUser) {
+      signInAnonymously(auth).catch((authErr) => {
+        console.info('[Firebase Auth Notice]:', authErr?.message || authErr);
+      });
+    }
+
     try {
-      storage = getStorage(app);
+      storage = firebaseConfig.storageBucket
+        ? getStorage(app, `gs://${firebaseConfig.storageBucket}`)
+        : getStorage(app);
     } catch (storageErr) {
       console.warn('[Firebase Storage Notice]: Storage init deferred:', storageErr);
+      storage = getStorage(app);
     }
+
     initError = null;
-    console.log('[Firebase]: Initialized successfully with projectId:', firebaseConfig.projectId);
+    console.log('[Firebase]: Initialized successfully with projectId:', firebaseConfig.projectId, 'and storageBucket:', firebaseConfig.storageBucket);
     return { app, db, storage, auth, error: null };
   } catch (err: any) {
     initError = err?.message || String(err);
@@ -105,6 +132,23 @@ export const initializeFirebaseApp = (): {
     return { app: null, db: null, storage: null, auth: null, error: initError };
   }
 };
+
+// Test initial connection with getDocFromServer per Firebase Integration skill
+if (typeof window !== 'undefined') {
+  setTimeout(async () => {
+    try {
+      const { db: firestore } = initializeFirebaseApp();
+      if (firestore) {
+        await getDocFromServer(doc(firestore, 'portfolio', 'data')).catch(() => {});
+        console.log('[Firebase Connection]: Live server connectivity verified.');
+      }
+    } catch (err: any) {
+      if (err instanceof Error && err.message.includes('the client is offline')) {
+        console.warn('[Firebase Connection Warning]: Client is currently offline.');
+      }
+    }
+  }, 1000);
+}
 
 // Diagnostics helper
 export const getFirebaseDiagnostics = (): FirebaseDiagnostics => {

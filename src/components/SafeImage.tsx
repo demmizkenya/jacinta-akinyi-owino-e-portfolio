@@ -76,11 +76,13 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   }
 
   const handleImageError = () => {
-    if (retryCount < 1) {
-      // Single auto-retry with cache-busting timestamp
-      setRetryCount((prev) => prev + 1);
-      const separator = currentSrc.includes('?') ? '&' : '?';
-      setCurrentSrc(`${src}${separator}_t=${Date.now()}`);
+    if (retryCount < 2) {
+      // Auto-retry with backoff for mobile network connectivity
+      setTimeout(() => {
+        setRetryCount((prev) => prev + 1);
+        const separator = src.includes('?') ? '&' : '?';
+        setCurrentSrc(`${src}${separator}_t=${Date.now()}`);
+      }, 600 * (retryCount + 1));
     } else {
       setIsLoading(false);
       setHasError(true);

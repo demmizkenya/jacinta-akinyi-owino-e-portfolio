@@ -159,7 +159,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     onUpdateData(updated);
     localStorage.setItem('jacinta_portfolio_data', JSON.stringify(updated));
 
-    // 2. Sync with backend API if available
+    // 2. Sync directly with Cloud Firestore for real-time live synchronization across devices
+    try {
+      await syncPortfolioToFirestore(updated);
+      console.log(`[Admin Portal]: Section "${section}" synced to Cloud Firestore.`);
+    } catch (fsErr) {
+      console.warn('[Admin Portal]: Firestore sync notice:', fsErr);
+    }
+
+    // 3. Sync with backend API if available
     try {
       const res = await fetch(`/api/admin/section/${section}`, {
         method: 'PUT',

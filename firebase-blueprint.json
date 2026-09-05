@@ -1,0 +1,60 @@
+{
+  "entities": {
+    "Portfolio": {
+      "title": "Portfolio",
+      "description": "Public portfolio data including profile, academic history, teaching practice, skills, gallery, blog, and site settings",
+      "type": "object",
+      "properties": {
+        "profile": { "type": "object", "description": "Profile info including name, bio, and avatarUrl" },
+        "gallery": { "type": "array", "description": "List of gallery items" },
+        "blog": { "type": "array", "description": "List of pedagogical reflection posts" },
+        "skills": { "type": "array", "description": "Skills and competencies" },
+        "siteSettings": { "type": "object", "description": "Website customization settings" },
+        "_lastUpdated": { "type": "string", "description": "Timestamp of last modification" }
+      }
+    },
+    "MediaItem": {
+      "title": "MediaItem",
+      "description": "Permanent media asset stored in Firebase Storage and cataloged in Firestore",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "filename": { "type": "string" },
+        "url": { "type": "string" },
+        "permanentUrl": { "type": "string" },
+        "size": { "type": "number" },
+        "mimeType": { "type": "string" },
+        "width": { "type": "number" },
+        "height": { "type": "number" },
+        "date": { "type": "string" },
+        "storageProvider": { "type": "string" },
+        "status": { "type": "string" },
+        "associatedSection": { "type": "string" }
+      },
+      "required": ["id", "filename", "url"]
+    },
+    "ContactMessage": {
+      "title": "ContactMessage",
+      "description": "Visitor contact messages submitted via the inquiry form",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "email", "message"]
+    }
+  },
+  "firestore": {
+    "/portfolio/{docId}": {
+      "schema": "Portfolio",
+      "description": "Portfolio documents such as 'data' and 'media' catalog"
+    },
+    "/messages/{messageId}": {
+      "schema": "ContactMessage",
+      "description": "Contact form submissions"
+    }
+  }
+}
