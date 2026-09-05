@@ -33,6 +33,7 @@ import {
 import { getFirebaseDiagnostics, testFirestoreConnection, firebaseConfig, syncPortfolioToFirestore } from '../lib/firebase';
 import { uploadPermanentImage, UploadResult } from '../lib/storageService';
 import { validateImageFile } from '../lib/imageOptimizer';
+import { SafeImage } from './SafeImage';
 import { MediaManagerDashboard } from './MediaManagerDashboard';
 import { 
   PortfolioData, 
@@ -159,10 +160,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     onUpdateData(updated);
     localStorage.setItem('jacinta_portfolio_data', JSON.stringify(updated));
 
+    let firestoreSaved = false;
+    let backendSaved = false;
+
     // 2. Sync directly with Cloud Firestore for real-time live synchronization across devices
     try {
-      await syncPortfolioToFirestore(updated);
-      console.log(`[Admin Portal]: Section "${section}" synced to Cloud Firestore.`);
+      firestoreSaved = await syncPortfolioToFirestore(updated);
+      if (firestoreSaved) {
+        console.log(`[Admin Portal]: Section "${section}" confirmed saved to Cloud Firestore.`);
+      }
     } catch (fsErr) {
       console.warn('[Admin Portal]: Firestore sync notice:', fsErr);
     }
@@ -181,22 +187,28 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       if (res.ok) {
         const resData = await res.json();
         if (resData.success) {
-          setStatusNotice({ type: 'success', text: `Section "${section}" successfully saved & published to server!` });
-        } else {
-          setStatusNotice({ type: 'success', text: `Section "${section}" saved locally & published.` });
+          backendSaved = true;
         }
-      } else {
-        console.warn(`[Admin CMS Save]: Backend API returned status ${res.status}. Saved locally.`);
-        setStatusNotice({ type: 'success', text: `Section "${section}" saved locally & published.` });
       }
-      setTimeout(() => setStatusNotice(null), 4000);
     } catch (err: any) {
-      console.warn('[Admin CMS Save Notice]: Backend unavailable, changes saved to browser storage:', err?.message || err);
-      setStatusNotice({ type: 'success', text: `Section "${section}" saved locally & published!` });
-      setTimeout(() => setStatusNotice(null), 4000);
-    } finally {
-      setIsSaving(false);
+      console.warn('[Admin CMS Save Notice]: Backend API notice:', err?.message || err);
     }
+
+    if (firestoreSaved || backendSaved) {
+      const location = firestoreSaved ? 'Cloud Firestore & published live to all devices' : 'server & published';
+      setStatusNotice({ 
+        type: 'success', 
+        text: `Section "${section}" successfully saved to ${location}!` 
+      });
+    } else {
+      setStatusNotice({ 
+        type: 'error', 
+        text: `Failed to confirm cloud database write for "${section}". Please verify connection and retry.` 
+      });
+    }
+
+    setTimeout(() => setStatusNotice(null), 4500);
+    setIsSaving(false);
   };
 
   // Resilient Image & Media Upload with automatic optimization and permanent storage
@@ -1337,11 +1349,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     className="p-3 rounded-2xl bg-[#FAF7FB] dark:bg-[#251233] border border-[#C8A2C8]/30 space-y-2 relative group"
                   >
                     <div className="aspect-[4/3] rounded-xl overflow-hidden bg-slate-200 dark:bg-[#180920] relative">
-                      <img
+                      <SafeImage
                         src={item.type === 'video' ? (item.thumbnailUrl || item.url) : item.url}
                         alt={item.title}
                         className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
                       />
                       <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/90 text-[#8A0F7D]">
                         {item.category}

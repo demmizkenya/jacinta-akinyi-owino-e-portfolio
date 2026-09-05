@@ -294,14 +294,47 @@ try {
   console.error('[Storage Pipeline Init Error]:', e);
 }
 
-// Active session store (token -> session)
+// Active session store with disk persistence across server restarts
 interface Session {
   token: string;
   email: string;
   role: 'admin';
   expiresAt: number;
 }
-const activeSessions = new Map<string, Session>();
+
+const SESSIONS_FILE = path.join(process.cwd(), 'active_sessions.json');
+
+function loadSessions(): Map<string, Session> {
+  const map = new Map<string, Session>();
+  try {
+    if (fs.existsSync(SESSIONS_FILE)) {
+      const data = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf-8'));
+      const now = Date.now();
+      for (const [token, session] of Object.entries(data as Record<string, Session>)) {
+        if (session && session.expiresAt > now) {
+          map.set(token, session);
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to load sessions from disk:', e);
+  }
+  return map;
+}
+
+function saveSessions(map: Map<string, Session>) {
+  try {
+    const obj: Record<string, Session> = {};
+    for (const [token, session] of map.entries()) {
+      obj[token] = session;
+    }
+    fs.writeFileSync(SESSIONS_FILE, JSON.stringify(obj, null, 2), 'utf-8');
+  } catch (e) {
+    console.warn('Failed to save sessions to disk:', e);
+  }
+}
+
+const activeSessions = loadSessions();
 
 // In-memory rate limiting for login
 const loginAttempts = new Map<string, { count: number; blockedUntil: number }>();
@@ -341,14 +374,24 @@ function requireAdmin(req: Request, res: Response, next: NextFunction): void {
     return;
   }
   const token = authHeader.split(' ')[1];
-  const session = activeSessions.get(token);
+  let session = activeSessions.get(token);
+  if (!session) {
+    const refreshed = loadSessions();
+    session = refreshed.get(token);
+    if (session) activeSessions.set(token, session);
+  }
+
   if (!session || session.expiresAt < Date.now()) {
-    if (session) activeSessions.delete(token);
+    if (session) {
+      activeSessions.delete(token);
+      saveSessions(activeSessions);
+    }
     res.status(401).json({ error: 'Session expired or invalid. Please log in again.' });
     return;
   }
-  // Refresh session activity
-  session.expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24h
+  // Refresh session activity (extend by 7 days for stable admin work)
+  session.expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+  saveSessions(activeSessions);
   next();
 }
 
@@ -511,13 +554,14 @@ async function startServer() {
 
     // Generate cryptographic session token
     const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
     activeSessions.set(token, {
       token,
       email: db.adminUser.email || 'admin@maseno.ac.ke',
       role: 'admin',
       expiresAt,
     });
+    saveSessions(activeSessions);
 
     res.json({
       success: true,
@@ -538,7 +582,12 @@ async function startServer() {
       return;
     }
     const token = authHeader.split(' ')[1];
-    const session = activeSessions.get(token);
+    let session = activeSessions.get(token);
+    if (!session) {
+      const refreshed = loadSessions();
+      session = refreshed.get(token);
+      if (session) activeSessions.set(token, session);
+    }
     if (!session || session.expiresAt < Date.now()) {
       res.status(401).json({ authenticated: false });
       return;
@@ -559,6 +608,7 @@ async function startServer() {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
       activeSessions.delete(token);
+      saveSessions(activeSessions);
     }
     res.json({ success: true });
   });
@@ -698,8 +748,10 @@ async function startServer() {
         ? filename.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30)
         : 'upload';
 
-      // Permanent unique ID
-      const uniqueId = `img_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+      // Permanent unique ID (prefer client-assigned uniqueId if provided)
+      const uniqueId = (req.body.id && typeof req.body.id === 'string') 
+        ? req.body.id 
+        : `img_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
       const safeName = `${cleanName}_${uniqueId}${extension}`;
       const filePath = path.join(uploadsDir, safeName);
 
@@ -731,7 +783,7 @@ async function startServer() {
         width: width || 0,
         height: height || 0,
         date: new Date().toISOString(),
-        storageProvider: 'server-permanent',
+        storageProvider: req.body.storageProvider || 'server-permanent',
         checksum,
         status: 'active',
         associatedSection: associatedSection || 'general',
@@ -756,6 +808,50 @@ async function startServer() {
       console.error('File upload error:', err);
       res.status(500).json({ error: 'Failed to save uploaded file: ' + (err?.message || String(err)) });
     }
+  });
+
+  // Public persistent image blob serving endpoint with aggressive caching
+  app.get('/api/media/blob/:id', (req: Request, res: Response) => {
+    const { id } = req.params;
+    const vault = loadMediaVault();
+
+    // 1. Look up in media vault
+    const vaultItem = vault[id] || Object.values(vault).find((v) => v.id === id || v.filename === id);
+    if (vaultItem && vaultItem.base64) {
+      const buffer = Buffer.from(vaultItem.base64, 'base64');
+      res.setHeader('Content-Type', vaultItem.mimeType || 'image/webp');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.setHeader('Content-Length', buffer.length);
+      res.send(buffer);
+      return;
+    }
+
+    // 2. Look up in db.media & uploads directory
+    if (db.media) {
+      const item = db.media.find((m) => m.id === id || m.filename === id);
+      if (item) {
+        const filePath = path.join(uploadsDir, item.filename);
+        if (fs.existsSync(filePath)) {
+          res.setHeader('Content-Type', item.mimeType || 'image/webp');
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          res.sendFile(filePath);
+          return;
+        }
+      }
+    }
+
+    // 3. Look up by filename pattern in uploads
+    if (fs.existsSync(uploadsDir)) {
+      const files = fs.readdirSync(uploadsDir);
+      const match = files.find((f) => f.includes(id));
+      if (match) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        res.sendFile(path.join(uploadsDir, match));
+        return;
+      }
+    }
+
+    res.status(404).json({ error: 'Image asset not found' });
   });
 
   // Register external or cloud-storage image into authoritative media catalog

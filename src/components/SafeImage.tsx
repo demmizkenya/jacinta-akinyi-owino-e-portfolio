@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ImageOff, Loader2, RefreshCw } from 'lucide-react';
+import { fetchMediaBlobFromFirestore } from '../lib/firebase';
 
 interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
@@ -75,9 +76,26 @@ export const SafeImage: React.FC<SafeImageProps> = ({
     );
   }
 
-  const handleImageError = () => {
+  const handleImageError = async () => {
+    // 1. Try extracting img_ ID and retrieving permanent blob from Cloud Firestore
+    const imgIdMatch = src.match(/(img_\d+_[a-z0-9]+)/i);
+    if (imgIdMatch && imgIdMatch[1]) {
+      try {
+        const cloudDataUri = await fetchMediaBlobFromFirestore(imgIdMatch[1]);
+        if (cloudDataUri && cloudDataUri !== currentSrc) {
+          console.log(`[SafeImage]: Recovered image ${imgIdMatch[1]} directly from Cloud Firestore permanent blob!`);
+          setCurrentSrc(cloudDataUri);
+          setIsLoading(false);
+          setHasError(false);
+          return;
+        }
+      } catch (e) {
+        console.warn('[SafeImage]: Cloud blob recovery notice:', e);
+      }
+    }
+
+    // 2. Auto-retry with backoff for mobile network connectivity
     if (retryCount < 2) {
-      // Auto-retry with backoff for mobile network connectivity
       setTimeout(() => {
         setRetryCount((prev) => prev + 1);
         const separator = src.includes('?') ? '&' : '?';

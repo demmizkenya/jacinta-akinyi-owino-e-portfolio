@@ -195,7 +195,7 @@ export interface MediaItem {
   width?: number;
   height?: number;
   date: string;
-  storageProvider: 'server-permanent' | 'firebase-storage' | 'cloud-storage';
+  storageProvider: 'server-permanent' | 'firebase-storage' | 'cloud-storage' | 'cloud-firestore';
   checksum?: string;
   status: 'active' | 'synced' | 'verified';
   associatedSection?: 'profile' | 'gallery' | 'blog' | 'document' | 'general';

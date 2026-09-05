@@ -7,6 +7,12 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // Permanent cloud image blobs: public read for all visitors, write for image uploads
+    match /portfolio_media_blobs/{blobId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // Contact messages: anyone can create, admin can read and delete
     match /messages/{messageId} {
       allow create: if true;

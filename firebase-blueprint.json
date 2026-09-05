@@ -33,6 +33,20 @@
       },
       "required": ["id", "filename", "url"]
     },
+    "MediaBlob": {
+      "title": "MediaBlob",
+      "description": "Permanent cloud-persisted image payload and metadata stored in Firestore",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "filename": { "type": "string" },
+        "dataUri": { "type": "string" },
+        "mimeType": { "type": "string" },
+        "size": { "type": "number" },
+        "uploadedAt": { "type": "string" }
+      },
+      "required": ["id", "dataUri"]
+    },
     "ContactMessage": {
       "title": "ContactMessage",
       "description": "Visitor contact messages submitted via the inquiry form",
@@ -51,6 +65,10 @@
     "/portfolio/{docId}": {
       "schema": "Portfolio",
       "description": "Portfolio documents such as 'data' and 'media' catalog"
+    },
+    "/portfolio_media_blobs/{blobId}": {
+      "schema": "MediaBlob",
+      "description": "Permanent image binary blobs stored in Firestore"
     },
     "/messages/{messageId}": {
       "schema": "ContactMessage",

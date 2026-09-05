@@ -115,9 +115,7 @@ export const initializeFirebaseApp = (): {
     }
 
     try {
-      storage = firebaseConfig.storageBucket
-        ? getStorage(app, `gs://${firebaseConfig.storageBucket}`)
-        : getStorage(app);
+      storage = firebaseConfig.storageBucket ? getStorage(app) : getStorage(app);
     } catch (storageErr) {
       console.warn('[Firebase Storage Notice]: Storage init deferred:', storageErr);
       storage = getStorage(app);
@@ -316,6 +314,92 @@ export const fetchMediaFromFirestore = async (): Promise<any[] | null> => {
     return null;
   } catch (err) {
     console.warn('[Firestore Media Fetch Warning]:', err);
+    return null;
+  }
+};
+
+/**
+ * Subscribe in real-time to Media Catalog changes from Firestore
+ */
+export const subscribeMediaFromFirestore = (onUpdate: (items: any[]) => void): (() => void) => {
+  try {
+    const { db: firestore } = initializeFirebaseApp();
+    if (!firestore) return () => {};
+    const docRef = doc(firestore, 'portfolio', 'media');
+    const unsubscribe = onSnapshot(
+      docRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const items = snapshot.data()?.items || [];
+          console.log('[Firestore Media Realtime Sync]: Received media catalog update:', items.length, 'items');
+          onUpdate(items);
+        }
+      },
+      (error) => {
+        console.warn('[Firestore Media Realtime Error]:', error);
+      }
+    );
+    return unsubscribe;
+  } catch (err) {
+    console.warn('[Firestore Media Subscription Warning]:', err);
+    return () => {};
+  }
+};
+
+/**
+ * Persist media image binary payload directly into Cloud Firestore under collection 'portfolio_media_blobs/{id}'
+ * Guarantees permanent persistence that survives serverless redeployments, device changes, and incognito sessions.
+ */
+export const saveMediaBlobToFirestore = async (
+  id: string,
+  data: {
+    filename: string;
+    dataUri: string;
+    mimeType: string;
+    size: number;
+    width?: number;
+    height?: number;
+    associatedSection?: string;
+  }
+): Promise<boolean> => {
+  try {
+    const { db: firestore } = initializeFirebaseApp();
+    if (!firestore) return false;
+    const docRef = doc(firestore, 'portfolio_media_blobs', id);
+    await setDoc(docRef, {
+      id,
+      filename: data.filename,
+      dataUri: data.dataUri,
+      mimeType: data.mimeType,
+      size: data.size,
+      width: data.width || 0,
+      height: data.height || 0,
+      associatedSection: data.associatedSection || 'general',
+      uploadedAt: new Date().toISOString(),
+    });
+    console.log(`[Cloud Firestore]: Permanent media blob ${id} successfully stored.`);
+    return true;
+  } catch (err: any) {
+    console.warn('[Cloud Firestore Blob Save Warning]:', err?.message || err);
+    return false;
+  }
+};
+
+/**
+ * Retrieve permanent image binary blob from Cloud Firestore
+ */
+export const fetchMediaBlobFromFirestore = async (id: string): Promise<string | null> => {
+  try {
+    const { db: firestore } = initializeFirebaseApp();
+    if (!firestore) return null;
+    const docRef = doc(firestore, 'portfolio_media_blobs', id);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      return snap.data()?.dataUri || null;
+    }
+    return null;
+  } catch (err) {
+    console.warn('[Cloud Firestore Blob Fetch Warning]:', err);
     return null;
   }
 };
